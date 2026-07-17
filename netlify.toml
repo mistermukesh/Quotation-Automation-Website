@@ -1,0 +1,8 @@
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/specs.html"
+  to = "/pages/specs.html"
+  status = 200
+  force = true

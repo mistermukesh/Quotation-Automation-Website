@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — KAN Universal Sales Quotation System</title>
+    <meta name="description" content="KAN Universal Sales Quotation System — Secure login for authorised sales representatives.">
+    <link rel="icon" href="https://lh3.googleusercontent.com/d/1Yd9L7l28qCJv3FePPixY_o8j8Be0ot82">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- ============================================================
+     LOADING OVERLAY
+     ============================================================ -->
+<div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loader-ring"></div>
+    <p id="loadingText">Authenticating…</p>
+</div>
+
+<!-- ============================================================
+     TOAST CONTAINER
+     ============================================================ -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- ============================================================
+     THEME TOGGLE (top-right corner)
+     ============================================================ -->
+<div style="position:fixed;top:16px;right:16px;z-index:50;">
+    <button type="button" id="themeToggle" class="theme-toggle" title="Toggle dark/light mode">
+        <svg id="themeIconMoon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/>
+        </svg>
+        <svg id="themeIconSun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" class="hidden">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <span id="themeLabel">Light</span>
+    </button>
+</div>
+
+<!-- ============================================================
+     LOGIN CARD
+     ============================================================ -->
+<div class="login-page">
+    <div class="login-card">
+
+        <!-- Logo & brand -->
+        <div class="login-logo">
+            <img src="https://lh3.googleusercontent.com/d/1Yd9L7l28qCJv3FePPixY_o8j8Be0ot82" alt="KAN Universal Logo">
+            <div class="login-logo-text">
+                <h1>KAN Universal</h1>
+                <p>Sales Quotation System</p>
+            </div>
+        </div>
+
+        <h2 class="login-title">Welcome back</h2>
+        <p class="login-sub">Sign in with your sales representative credentials.</p>
+
+        <!-- Error message -->
+        <div id="loginError" class="login-error" role="alert">
+            Invalid User ID or Password. Please try again.
+        </div>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="login-form" novalidate autocomplete="off">
+            <div class="field">
+                <label for="loginId">User ID <span class="req">*</span></label>
+                <input
+                    type="text"
+                    id="loginId"
+                    name="loginId"
+                    placeholder="e.g. MOHIT"
+                    autocomplete="username"
+                    autocorrect="off"
+                    autocapitalize="characters"
+                    spellcheck="false"
+                    required
+                >
+            </div>
+
+            <div class="field">
+                <label for="loginPassword">Password <span class="req">*</span></label>
+                <div style="position:relative;">
+                    <input
+                        type="password"
+                        id="loginPassword"
+                        name="loginPassword"
+                        placeholder="Enter your password"
+                        autocomplete="current-password"
+                        required
+                        style="padding-right:46px;"
+                    >
+                    <button
+                        type="button"
+                        id="togglePassword"
+                        title="Show/hide password"
+                        style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-faint);padding:4px;"
+                        aria-label="Toggle password visibility"
+                    >
+                        <svg id="eyeIcon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary login-submit" id="loginBtn">
+                Sign In →
+            </button>
+        </form>
+
+        <div class="login-footer">
+            KAN Universal Pvt Ltd · New Delhi · <a href="https://www.kanuniversal.com" target="_blank" rel="noopener">www.kanuniversal.com</a>
+        </div>
+    </div>
+</div>
+
+<script src="assets/js/credentials.js"></script>
+<script>
+    /* ============================================================
+       LOGIN PAGE LOGIC
+       ============================================================ */
+    (function () {
+        "use strict";
+
+        /* If already logged in, redirect to dashboard */
+        if (getSessionUser()) {
+            window.location.replace("pages/dashboard.html");
+            return;
+        }
+
+        /* ---- Theme toggle ---- */
+        const savedTheme = localStorage.getItem("kan_theme") || "dark";
+        document.documentElement.setAttribute("data-theme", savedTheme);
+        updateThemeUI(savedTheme);
+
+        document.getElementById("themeToggle").addEventListener("click", () => {
+            const cur = document.documentElement.getAttribute("data-theme") === "light" ? "dark" : "light";
+            document.documentElement.setAttribute("data-theme", cur);
+            localStorage.setItem("kan_theme", cur);
+            updateThemeUI(cur);
+        });
+
+        function updateThemeUI(theme) {
+            const label = document.getElementById("themeLabel");
+            const moon  = document.getElementById("themeIconMoon");
+            const sun   = document.getElementById("themeIconSun");
+            if (theme === "light") {
+                if (moon)  moon.classList.add("hidden");
+                if (sun)   sun.classList.remove("hidden");
+                if (label) label.textContent = "Dark";
+            } else {
+                if (moon)  moon.classList.remove("hidden");
+                if (sun)   sun.classList.add("hidden");
+                if (label) label.textContent = "Light";
+            }
+        }
+
+        /* ---- Password visibility toggle ---- */
+        document.getElementById("togglePassword").addEventListener("click", () => {
+            const pwd = document.getElementById("loginPassword");
+            const icon = document.getElementById("eyeIcon");
+            if (pwd.type === "password") {
+                pwd.type = "text";
+                icon.innerHTML = `<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/>`;
+            } else {
+                pwd.type = "password";
+                icon.innerHTML = `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>`;
+            }
+        });
+
+        /* ---- Login form submission ---- */
+        const form    = document.getElementById("loginForm");
+        const errBox  = document.getElementById("loginError");
+        const overlay = document.getElementById("loadingOverlay");
+
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            errBox.classList.remove("visible");
+
+            const id  = document.getElementById("loginId").value.trim();
+            const pwd = document.getElementById("loginPassword").value;
+
+            if (!id || !pwd) {
+                errBox.textContent = "Please enter both User ID and Password.";
+                errBox.classList.add("visible");
+                return;
+            }
+
+            overlay.classList.remove("hidden");
+
+            /* Simulate slight delay for UX */
+            setTimeout(() => {
+                const emp = authenticateUser(id, pwd);
+                overlay.classList.add("hidden");
+
+                if (!emp) {
+                    errBox.textContent = "Invalid User ID or Password. Please try again.";
+                    errBox.classList.add("visible");
+                    document.getElementById("loginPassword").value = "";
+                    document.getElementById("loginPassword").focus();
+                    return;
+                }
+
+                /* Success — save session and redirect */
+                setSessionUser(emp);
+                window.location.href = "pages/dashboard.html";
+            }, 600);
+        });
+
+        /* Allow Enter key from ID field to move to password */
+        document.getElementById("loginId").addEventListener("keydown", e => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                document.getElementById("loginPassword").focus();
+            }
+        });
+    })();
+</script>
+
+</body>
+</html>

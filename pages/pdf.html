@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quotation — KAN Universal Pvt Ltd</title>
+    <meta name="description" content="KAN Universal Sales Quotation — View and download your quotation.">
+    <link rel="icon" href="https://lh3.googleusercontent.com/d/1Yd9L7l28qCJv3FePPixY_o8j8Be0ot82">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/pdf.css">
+    <!-- html2canvas: screenshots the rendered DOM element exactly as seen -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- jsPDF: assembles the canvas screenshot into a downloadable PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- ============================================================
+     PDF TOPBAR (hidden on print)
+     ============================================================ -->
+<div class="pdf-topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+        <img src="https://lh3.googleusercontent.com/d/1Yd9L7l28qCJv3FePPixY_o8j8Be0ot82" alt="KAN Universal" style="width:32px;height:32px;border-radius:6px;object-fit:cover;">
+        <div>
+            <div style="font-weight:700;font-size:14px;">KAN Universal Pvt Ltd</div>
+            <div style="font-size:11px;color:#888;">Quotation View &nbsp;|&nbsp; <a href="https://www.kanuniversal.com" target="_blank" style="color:#582f4c; text-decoration:underline;">www.kanuniversal.com</a></div>
+        </div>
+    </div>
+    <div class="pdf-topbar-actions">
+        <button class="pdf-btn pdf-btn-back" onclick="history.back()">← Back</button>
+        <button class="pdf-btn pdf-btn-outline" onclick="window.location.href='dashboard.html'">Dashboard</button>
+        <button class="pdf-btn pdf-btn-outline" id="pdfEditBtn" style="background:#e67e22;color:#fff;border-color:#e67e22;display:none;">✏️ Edit</button>
+        <button class="pdf-btn pdf-btn-outline" onclick="downloadPdfDirect()" style="background:#2ecc71;color:#fff;border-color:#2ecc71;">📥 Download PDF (One-Click)</button>
+        <button class="pdf-btn pdf-btn-primary" onclick="window.print()">🖨 Print / Save PDF</button>
+    </div>
+</div>
+
+<!-- ============================================================
+     PDF DOCUMENT
+     ============================================================ -->
+<div class="pdf-page-wrapper">
+    <div class="pdf-doc" id="pdfDoc">
+        <div style="text-align:center;padding:60px;color:#888;">Loading quotation…</div>
+    </div>
+</div>
+
+<script src="../assets/js/specs.js"></script>
+<script src="../assets/js/credentials.js"></script>
+<script>
+/* ==========================================================================
+   KAN UNIVERSAL — PDF / QUOTATION VIEW PAGE
+   ========================================================================== */
+(function () {
+    "use strict";
+
+    let q = null;
+
+    /* ---- Auth Guard ---- */
+    const urlParams = new URLSearchParams(window.location.search);
+    const user = getSessionUser();
+    if (!user && !urlParams.get("id")) { window.location.replace("../index.html"); return; }
+
+    /* ---- Toast ---- */
+    function toast(msg, type = "info") {
+        const el = document.createElement("div");
+        el.className = "toast " + (type === "success" ? "success" : type === "error" ? "error" : "");
+        el.textContent = msg;
+        document.getElementById("toastContainer").appendChild(el);
+        setTimeout(() => el.remove(), 4200);
+    }
+
+    /* ---- Escape HTML ---- */
+    function esc(s) {
+        return String(s == null ? "" : s)
+            .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+            .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+    }
+
+    /* ---- Format helpers ---- */
+    function fmtCurrency(n) {
+        const v = parseFloat(n) || 0;
+        return "₹\u00A0" + v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function getFormattedDateTime(iso) {
+        if (!iso) return { date: "—", time: "—" };
+        let d;
+        const s = String(iso).trim();
+        // Handle Indian DD/MM/YYYY HH:MM:SS format from Google Sheets
+        const indMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:[\s,T](\d{2}:\d{2}(?::\d{2})?))?/);
+        if (indMatch) {
+            const [, dd, mm, yyyy, time = "00:00:00"] = indMatch;
+            d = new Date(`${yyyy}-${mm}-${dd}T${time}`);
+        } else {
+            d = new Date(s);
+        }
+        if (isNaN(d.getTime())) return { date: String(iso), time: "" };
+        const date = d.toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" });
+        const time = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+        return { date, time };
+    }
+
+    function fmt2(n) { return (parseFloat(n) || 0).toFixed(2); }
+
+    function getDirectDownloadUrl(url) {
+        if (!url) return "";
+        if (url.includes("drive.google.com/uc") || url.includes("docs.google.com/uc")) {
+            return url;
+        }
+        const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+        if (match && match[1]) {
+            return "https://drive.google.com/uc?export=download&id=" + match[1];
+        }
+        return url;
+    }
+
+    /* ---- Scope responsibility colour ---- */
+    function scopeSpan(val) {
+        if (!val) return "—";
+        let cls = "scope-buyer";
+        if (val === "KAN") cls = "scope-kan";
+        else if (val === "NOT REQUIRED") cls = "scope-nr";
+        return `<span class="${cls}">${esc(val)}</span>`;
+    }
+
+    /* ---- Dynamic A4 Pagination Layout Engine ---- */
+    function paginatePdf(containerId) {
+        const docEl = document.getElementById(containerId);
+        if (!docEl) return;
+        
+        const sections = Array.from(docEl.children);
+        docEl.innerHTML = "";
+        
+        let currentPage = document.createElement("div");
+        currentPage.className = "pdf-page";
+        docEl.appendChild(currentPage);
+        
+        const pageHeightLimit = 1055;
+        
+        sections.forEach(section => {
+            currentPage.appendChild(section);
+            
+            if (currentPage.scrollHeight > pageHeightLimit) {
+                const hasList  = section.querySelector(".pdf-terms, .pdf-remarks");
+                const hasTable = section.querySelector(".pdf-breakdown-table");
+                const hasGrid  = section.querySelector(".pdf-grid-2, .pdf-grid-3");
+                const hasAtts  = section.querySelector(".pdf-attachments-list");
+                
+                if (hasList) {
+                    currentPage = splitListSection(section, currentPage, docEl, pageHeightLimit);
+                } else if (hasTable) {
+                    currentPage = splitTableSection(section, currentPage, docEl, pageHeightLimit);
+                } else if (hasGrid) {
+                    currentPage = splitGridSection(section, currentPage, docEl, pageHeightLimit);
+                } else if (hasAtts) {
+                    currentPage = splitAttachmentSection(section, currentPage, docEl, pageHeightLimit);
+                } else {
+                    currentPage.removeChild(section);
+                    
+                    currentPage = document.createElement("div");
+                    currentPage.className = "pdf-page";
+                    docEl.appendChild(currentPage);
+                    
+                    currentPage.appendChild(section);
+                }
+            }
+        });
+
+        // Helper to split attachments
+        function splitAttachmentSection(section, activePage, parentEl, limit) {
+            const headerEl = section.querySelector(".pdf-section-header");
+            const listContainer = section.querySelector(".pdf-attachments-list");
+            if (!listContainer) return activePage;
+            
+            const listItems = Array.from(listContainer.children);
+            if (listItems.length === 0) return activePage;
+            
+            if (section.parentElement) section.parentElement.removeChild(section);
+            
+            let currentContainer = document.createElement("div");
+            currentContainer.className = "pdf-section-container";
+            if (headerEl) currentContainer.appendChild(headerEl.cloneNode(true));
+            
+            let currentListContainer = listContainer.cloneNode(false);
+            currentContainer.appendChild(currentListContainer);
+            activePage.appendChild(currentContainer);
+            
+            for (let i = 0; i < listItems.length; i++) {
+                const li = listItems[i];
+                currentListContainer.appendChild(li.cloneNode(true));
+                
+                if (activePage.scrollHeight > limit) {
+                    currentListContainer.removeChild(currentListContainer.lastChild);
+                    if (currentListContainer.children.length === 0) activePage.removeChild(currentContainer);
+                    
+                    activePage = document.createElement("div");
+                    activePage.className = "pdf-page";
+                    parentEl.appendChild(activePage);
+                    
+                    currentContainer = document.createElement("div");
+                    currentContainer.className = "pdf-section-container";
+                    if (headerEl) {
+                        const hClone = headerEl.cloneNode(true);
+                        hClone.innerHTML = esc(headerEl.textContent) + " <span style='font-size:8px;font-weight:normal;opacity:0.8;'> (Contd.)</span>";
+                        currentContainer.appendChild(hClone);
+                    }
+                    
+                    const nextListContainer = listContainer.cloneNode(false);
+                    currentContainer.appendChild(nextListContainer);
+                    activePage.appendChild(currentContainer);
+                    
+                    nextListContainer.appendChild(li.cloneNode(true));
+                    currentListContainer = nextListContainer;
+                }
+            }
+            return activePage;
+        }
+
+        // Helper to split grid sections (pdf-grid-2 / pdf-grid-3) row-by-row
+        function splitGridSection(section, activePage, parentEl, limit) {
+            const headerEl   = section.querySelector(".pdf-section-header");
+            const headerText = headerEl ? headerEl.textContent : "";
+            const gridEl     = section.querySelector(".pdf-grid-2, .pdf-grid-3");
+            if (!gridEl) return activePage;
+
+            const cols  = gridEl.classList.contains("pdf-grid-2") ? 2 : 3;
+            const cells = Array.from(gridEl.querySelectorAll(".pdf-cell"));
+            if (cells.length === 0) return activePage;
+
+            // Remove the section that was already appended
+            if (section.parentElement) section.parentElement.removeChild(section);
+
+            // Build first container on the current page
+            let currentContainer = document.createElement("div");
+            currentContainer.className = "pdf-section-container";
+            if (headerEl) currentContainer.appendChild(headerEl.cloneNode(true));
+
+            let currentGridEl = gridEl.cloneNode(false); // clone without children
+            currentContainer.appendChild(currentGridEl);
+            activePage.appendChild(currentContainer);
+
+            // Group cells into rows of `cols`
+            const rows = [];
+            for (let i = 0; i < cells.length; i += cols) {
+                rows.push(cells.slice(i, i + cols));
+            }
+
+            for (let ri = 0; ri < rows.length; ri++) {
+                const rowCells = rows[ri];
+
+                // Append this row's cells
+                rowCells.forEach(cell => currentGridEl.appendChild(cell.cloneNode(true)));
+
+                if (activePage.scrollHeight > limit) {
+                    // Remove the just-appended cells
+                    rowCells.forEach(() => currentGridEl.removeChild(currentGridEl.lastChild));
+
+                    // If the grid container ended up empty, remove the whole section container
+                    if (currentGridEl.children.length === 0) {
+                        activePage.removeChild(currentContainer);
+                    }
+
+                    // Start a new page
+                    activePage = document.createElement("div");
+                    activePage.className = "pdf-page";
+                    parentEl.appendChild(activePage);
+
+                    currentContainer = document.createElement("div");
+                    currentContainer.className = "pdf-section-container";
+
+                    if (headerEl) {
+                        const hClone = headerEl.cloneNode(true);
+                        hClone.innerHTML = esc(headerText) + " <span style='font-size:8px;font-weight:normal;opacity:0.7;'>(Contd.)</span>";
+                        currentContainer.appendChild(hClone);
+                    }
+
+                    currentGridEl = gridEl.cloneNode(false);
+                    currentContainer.appendChild(currentGridEl);
+                    activePage.appendChild(currentContainer);
+
+                    // Re-append the overflowing row on the new page
+                    rowCells.forEach(cell => currentGridEl.appendChild(cell.cloneNode(true)));
+                }
+            }
+
+            return activePage;
+        }
+
+        // Helper to split terms and remarks lists
+        function splitListSection(section, activePage, parentEl, limit) {
+            const headerEl = section.querySelector(".pdf-section-header");
+            const headerText = headerEl ? headerEl.textContent : "";
+            const listContainer = section.querySelector(".pdf-terms, .pdf-remarks");
+            if (!listContainer) return activePage;
+            
+            const listEl = listContainer.querySelector("ol, ul");
+            if (!listEl) return activePage;
+            
+            const listItems = Array.from(listEl.children);
+            if (listItems.length === 0) return activePage;
+            
+            if (section.parentElement) {
+                section.parentElement.removeChild(section);
+            }
+            
+            let currentContainer = document.createElement("div");
+            currentContainer.className = "pdf-section-container";
+            
+            if (headerEl) {
+                currentContainer.appendChild(headerEl.cloneNode(true));
+            }
+            
+            const currentListContainer = listContainer.cloneNode(true);
+            let currentListEl = currentListContainer.querySelector("ol, ul");
+            currentListEl.innerHTML = "";
+            currentContainer.appendChild(currentListContainer);
+            
+            activePage.appendChild(currentContainer);
+            
+            let currentItemIndex = 1;
+            
+            for (let i = 0; i < listItems.length; i++) {
+                const li = listItems[i];
+                currentListEl.appendChild(li.cloneNode(true));
+                
+                if (activePage.scrollHeight > limit) {
+                    currentListEl.removeChild(currentListEl.lastChild);
+                    
+                    if (currentListEl.children.length === 0) {
+                        activePage.removeChild(currentContainer);
+                    }
+                    
+                    activePage = document.createElement("div");
+                    activePage.className = "pdf-page";
+                    parentEl.appendChild(activePage);
+                    
+                    currentContainer = document.createElement("div");
+                    currentContainer.className = "pdf-section-container";
+                    
+                    if (headerEl) {
+                        const headerClone = headerEl.cloneNode(true);
+                        headerClone.innerHTML = esc(headerText) + " <span style='font-size:8px;font-weight:normal;opacity:0.8;'> (Contd.)</span>";
+                        currentContainer.appendChild(headerClone);
+                    }
+                    
+                    const nextListContainer = listContainer.cloneNode(true);
+                    const nextListEl = nextListContainer.querySelector("ol, ul");
+                    nextListEl.innerHTML = "";
+                    nextListEl.setAttribute("start", currentItemIndex);
+                    
+                    currentContainer.appendChild(nextListContainer);
+                    activePage.appendChild(currentContainer);
+                    
+                    nextListEl.appendChild(li.cloneNode(true));
+                    currentListEl = nextListEl;
+                }
+                
+                currentItemIndex++;
+            }
+            
+            return activePage;
+        }
+
+        // Helper to split table breakdown rows
+        function splitTableSection(section, activePage, parentEl, limit) {
+            const headerEl = section.querySelector(".pdf-section-header");
+            const tableEl = section.querySelector(".pdf-breakdown-table");
+            if (!tableEl) return activePage;
+            
+            const rows = Array.from(tableEl.querySelectorAll("tbody tr"));
+            if (rows.length === 0) return activePage;
+            
+            const totalsEl = section.querySelector(".pdf-totals");
+            
+            if (section.parentElement) {
+                section.parentElement.removeChild(section);
+            }
+            
+            let currentContainer = document.createElement("div");
+            currentContainer.className = "pdf-section-container";
+            
+            if (headerEl) {
+                currentContainer.appendChild(headerEl.cloneNode(true));
+            }
+            
+            const currentTableEl = tableEl.cloneNode(true);
+            let currentTbody = currentTableEl.querySelector("tbody");
+            currentTbody.innerHTML = "";
+            currentContainer.appendChild(currentTableEl);
+            
+            activePage.appendChild(currentContainer);
+            
+            for (let i = 0; i < rows.length; i++) {
+                const row = rows[i];
+                currentTbody.appendChild(row.cloneNode(true));
+                
+                if (activePage.scrollHeight > limit) {
+                    currentTbody.removeChild(currentTbody.lastChild);
+                    
+                    if (currentTbody.children.length === 0) {
+                        activePage.removeChild(currentContainer);
+                    }
+                    
+                    activePage = document.createElement("div");
+                    activePage.className = "pdf-page";
+                    parentEl.appendChild(activePage);
+                    
+                    currentContainer = document.createElement("div");
+                    currentContainer.className = "pdf-section-container";
+                    
+                    if (headerEl) {
+                        const headerClone = headerEl.cloneNode(true);
+                        headerClone.innerHTML = esc(headerEl.textContent) + " <span style='font-size:8px;font-weight:normal;opacity:0.8;'> (Contd.)</span>";
+                        currentContainer.appendChild(headerClone);
+                    }
+                    
+                    const nextTableEl = tableEl.cloneNode(true);
+                    const nextTbody = nextTableEl.querySelector("tbody");
+                    nextTbody.innerHTML = "";
+                    currentContainer.appendChild(nextTableEl);
+                    activePage.appendChild(currentContainer);
+                    
+                    nextTbody.appendChild(row.cloneNode(true));
+                    currentTbody = nextTbody;
+                }
+            }
+            
+            if (totalsEl) {
+                currentContainer.appendChild(totalsEl.cloneNode(true));
+                if (activePage.scrollHeight > limit) {
+                    currentContainer.removeChild(currentContainer.lastChild);
+                    
+                    activePage = document.createElement("div");
+                    activePage.className = "pdf-page";
+                    parentEl.appendChild(activePage);
+                    
+                    currentContainer = document.createElement("div");
+                    currentContainer.className = "pdf-section-container";
+                    
+                    if (headerEl) {
+                        const headerClone = headerEl.cloneNode(true);
+                        headerClone.innerHTML = esc(headerEl.textContent) + " <span style='font-size:8px;font-weight:normal;opacity:0.8;'> (Totals)</span>";
+                        currentContainer.appendChild(headerClone);
+                    }
+                    
+                    currentContainer.appendChild(totalsEl.cloneNode(true));
+                    activePage.appendChild(currentContainer);
+                }
+            }
+            
+            return activePage;
+        }
+    }
+
+    /* ---- Load quotation ---- */
+    function loadQuotation() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlId     = urlParams.get("id");
+        if (urlId) return loadById(decodeURIComponent(urlId));
+
+        const sessId = sessionStorage.getItem("kan_view_quote_id");
+        if (sessId) return loadById(sessId);
+
+        document.getElementById("pdfDoc").innerHTML =
+            '<div style="text-align:center;padding:60px;color:#c00;">No quotation selected. Please go to the <a href="dashboard.html">Dashboard</a> and click View or PDF.</div>';
+        return null;
+    }
+
+    function loadById(id) {
+        try {
+            const all = JSON.parse(localStorage.getItem("kan_quotations") || "[]");
+            return all.find(q => q._id === id) || null;
+        } catch { return null; }
+    }
+
+    /* ---- Render quotation HTML ---- */
+    function renderQuotation(q) {
+        if (!q) {
+            document.getElementById("pdfDoc").innerHTML =
+                '<div style="text-align:center;padding:60px;color:#c00;">Quotation not found.</div>';
+            return;
+        }
+
+        const dt = getFormattedDateTime(q.createdAt);
+        // Parse createdAt (handles Indian DD/MM/YYYY format)
+        function parseDateMs(val) {
+            if (!val) return 0;
+            const s = String(val).trim();
+            const indMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+            if (indMatch) {
+                const [, dd, mm, yyyy] = indMatch;
+                return new Date(`${yyyy}-${mm}-${dd}`).getTime();
+            }
+            return new Date(s).getTime() || 0;
+        }
+        const validUntil = q.createdAt
+            ? new Date(parseDateMs(q.createdAt) + 15 * 86400000).toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" })
+            : "—";
+
+        /* ---- Lookup Sales Rep Designation ---- */
+        const repName = q.salesRep?.name || "";
+        const emp = (typeof EMPLOYEES !== "undefined") ? EMPLOYEES.find(e => e.name === repName) : null;
+        const designation = emp ? emp.role : "Business Development Executive";
+
+        /* ---- Build line items rows ---- */
+        const lineRows = (q.lineItems || []).map((li, i) => {
+            const isScreen = (li.category || "").toUpperCase() === "SCREEN";
+            const specKey = ((li.category || "").toUpperCase() + "|||" + (li.item || li.category || "").toUpperCase()).trim();
+            const specEntry = (typeof PRODUCT_SPECS !== "undefined") ? PRODUCT_SPECS[specKey] : null;
+            const linkUrl = li.specLink || `../pages/specs.html?category=${encodeURIComponent(li.category)}&item=${encodeURIComponent(li.item || li.category)}`;
+            
+            let specCellHtml = "—";
+            let descCellHtml = "—";
+
+            if (li.specLink || isScreen || (li.spec && li.spec !== "—" && String(li.spec).trim() !== "")) {
+                let sLink = li.specLink || linkUrl;
+                if (sLink.startsWith("specs.html")) {
+                    sLink = "../pages/" + sLink;
+                }
+                specCellHtml = `<a href="${esc(sLink)}" target="_blank" class="pdf-spec-link">View</a>`;
+            }
+
+            if (li.description && li.description !== "—" && String(li.description).trim() !== "") {
+                let dLink = linkUrl + "&desc=" + encodeURIComponent(li.description);
+                if (dLink.startsWith("specs.html")) {
+                    dLink = "../pages/" + dLink;
+                }
+                descCellHtml = `<a href="${esc(dLink)}" target="_blank" class="pdf-spec-link">View</a>`;
+            }
+
+            return `
+            <tr>
+                <td class="pdf-sno">${i + 1}</td>
+                <td>${esc(li.category || "—")}</td>
+                <td>${esc(li.item || li.category || "—")}</td>
+                <td>${esc(li.brand || "—")}</td>
+                <td style="text-align: center;">
+                    ${specCellHtml}
+                </td>
+                <td style="text-align: center;">
+                    ${descCellHtml}
+                </td>
+                <td class="pdf-num">${fmt2(li.qty)}</td>
+                <td>${esc(li.unit || "Nos")}</td>
+                <td class="pdf-num">${fmtCurrency(li.unitPrice)}</td>
+                <td class="pdf-num">${fmtCurrency((parseFloat(li.qty)||0)*(parseFloat(li.unitPrice)||0))}</td>
+            </tr>
+            `;
+        }).join("");
+
+        /* ---- Build remarks (dynamically adjust or skip if empty) ---- */
+        const remarksArray = Array.isArray(q.remarks) ? q.remarks : (q.terms && q.terms.remarks ? q.terms.remarks : []);
+        const filledRemarks = (remarksArray || []).filter(r => r && r.trim() !== "");
+        const remarkHtml = filledRemarks.length > 0
+            ? `
+            <div class="pdf-section-container">
+                <div class="pdf-section-header">7. Remarks</div>
+                <div class="pdf-remarks">
+                    <ol style="margin: 0; padding-left: 18px;">
+                        ${filledRemarks.map(r => `<li>${esc(r)}</li>`).join("")}
+                    </ol>
+                </div>
+            </div>
+            `
+            : "";
+
+        /* ---- Build terms ---- */
+        const termsArray = Array.isArray(q.terms) ? q.terms : (
+            (q.terms && q.terms.conditions) ? q.terms.conditions.split('\n').map((t, i) => ({sno: i+1, text: t.replace(/^\d+\.\s*/, '').trim()})).filter(t=>t.text) : []
+        );
+        const termItems = (termsArray || [])
+            .map((t, i) => `<li>${esc(t.text || t)}</li>`)
+            .join("");
+
+        /* ---- Build attachments list ---- */
+        const attachmentsList = q.attachments || (q.attachment && q.attachment.filename ? [q.attachment] : []);
+
+        const proj = q.project || {};
+        const s = q.summary || {};
+
+        document.getElementById("pdfDoc").innerHTML = `
+
+        <!-- ======= COMPANY DETAILS & BANK DETAILS HEADER ======= -->
+        <div class="pdf-section-container" style="border:none;">
+            <div class="pdf-company-header" style="border: 1px solid #582f4c; border-radius: 4px;">
+                <div class="pdf-header-left-col">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+                        <img src="${typeof KAN_LOGO_BASE64 !== 'undefined' ? KAN_LOGO_BASE64 : '../assets/images/logo.jpg'}" alt="KAN Universal Logo" class="pdf-logo-img">
+                        <div>
+                            <h1 style="font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:#582f4c;margin:0;line-height:1.2;white-space:nowrap;">KAN UNIVERSAL PVT LTD</h1>
+                            <p style="font-size:13px;font-weight:600;color:#666;margin:4px 0 0;">Professional LED Display Solutions</p>
+                        </div>
+                    </div>
+                    <div style="font-size:9.5px;color:#444;line-height:1.4;">
+                        367, 1st Floor, Kothi Wala Bagh, Bharat Nagar, Ashok Vihar Phase 4, New Delhi – 110052<br>
+                        <strong>GST No. :</strong> 07AAECK5460B1ZU<br>
+                        <strong>Email:</strong> sales@kanuniversal.com<br>
+                        <strong>Website:</strong> <a href="https://www.kanuniversal.com" target="_blank" style="color:#582f4c; text-decoration:underline;">www.kanuniversal.com</a>
+                    </div>
+                </div>
+                <div class="pdf-header-right-col">
+                    <div class="pdf-ref-box">
+                        <div style="font-size:11px;font-weight:700;color:#582f4c;">REF ID: <span style="font-family:'JetBrains Mono',monospace;color:#c0392b;">${esc(q.quotationNo || "—")}</span></div>
+                        <div style="font-size:9.5px;color:#555;margin-top:2px;">Date: <strong>${dt.date}</strong> &nbsp;|&nbsp; Time: <strong>${dt.time}</strong></div>
+                        <div style="font-size:9px;color:#666;margin-top:2px;">Valid until: <strong>${validUntil}</strong></div>
+                    </div>
+                    <div class="pdf-bank-box">
+                        <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#582f4c;margin-bottom:3px;border-bottom:1px solid #ddd;padding-bottom:2px;">Bank Details</div>
+                        <div style="font-size:9px;color:#444;line-height:1.35;">
+                            <strong>Bank Name:</strong> ICICI Bank<br>
+                            <strong>Branch:</strong> Chandani Chowk<br>
+                            <strong>Account No.:</strong> 629205500585<br>
+                            <strong>IFSC Code:</strong> ICIC0006292<br>
+                            <strong>Address:</strong> 1820, Near Sis Ganj Gurudwara, Chandani Chowk, Delhi, 110006
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======= SECTION 1: SALES REPRESENTATIVE ======= -->
+        <div class="pdf-section-container">
+            <div class="pdf-section-header">Sale Person</div>
+            <div class="pdf-grid-2">
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Sale’s person Name</div>
+                    <div class="pdf-cell-value">${esc(q.salesRep?.name || "—")}</div>
+                </div>
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Contact No.</div>
+                    <div class="pdf-cell-value">${esc(q.salesRep?.contact || "—")}</div>
+                </div>
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Email</div>
+                    <div class="pdf-cell-value">${esc(q.salesRep?.email || "—")}</div>
+                </div>
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Designation</div>
+                    <div class="pdf-cell-value">${esc(designation)}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======= SECTION 2: CLIENT INFORMATION ======= -->
+        <div class="pdf-section-container">
+            <div class="pdf-section-header">Client Information</div>
+            <div class="pdf-grid-2">
+                <!-- Row 1 -->
+                ${q.hideFields?.clientName ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Client Name</div>
+                    <div class="pdf-cell-value">${esc(q.client?.name || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.clientAddress ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Client Address</div>
+                    <div class="pdf-cell-value" style="white-space:pre-line;">${esc(q.client?.clientAddress || "—")}</div>
+                </div>
+                `}
+                <!-- Row 2 -->
+                ${q.hideFields?.companyName ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Company</div>
+                    <div class="pdf-cell-value">${esc(q.client?.company || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.siteAddress ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Site address</div>
+                    <div class="pdf-cell-value" style="white-space:pre-line;">${esc(q.client?.siteAddress || "—")}</div>
+                </div>
+                `}
+                <!-- Row 3 -->
+                ${q.hideFields?.clientEmail ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Email</div>
+                    <div class="pdf-cell-value">${esc(q.client?.email || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.gstNumber ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">GST No.</div>
+                    <div class="pdf-cell-value">${esc(q.client?.gst || "—")}</div>
+                </div>
+                `}
+                <!-- Row 4 -->
+                ${q.hideFields?.clientContact ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Contact</div>
+                    <div class="pdf-cell-value">${esc(q.client?.contact || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.orgType ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Org Type</div>
+                    <div class="pdf-cell-value">${esc(q.client?.orgType || "—")}</div>
+                </div>
+                `}
+            </div>
+        </div>
+
+        <!-- ======= SECTION 3: PROJECT DETAILS ======= -->
+        <div class="pdf-section-container">
+            <div class="pdf-section-header">Project Details</div>
+            <div class="pdf-grid-3">
+                <!-- Row 1 -->
+                ${q.hideFields?.projectType ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Project Type</div>
+                    <div class="pdf-cell-value">${esc(proj.projectType || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.actualWidthFT ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Actual Screen Width (FT)</div>
+                    <div class="pdf-cell-value">${esc(proj.actualWidthFT || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.controlRoomDistance ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Control Room Distance (Ft)</div>
+                    <div class="pdf-cell-value">${esc(proj.controlRoomDistance ? proj.controlRoomDistance + " Ft" : "0")}</div>
+                </div>
+                `}
+
+                <!-- Row 2 -->
+                ${q.hideFields?.moduleSize ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Module Size</div>
+                    <div class="pdf-cell-value">${esc(proj.moduleSize || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.actualHeightFT ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Actual Screen Height (FT)</div>
+                    <div class="pdf-cell-value">${esc(proj.actualHeightFT || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.cabinetSolution ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Cabinet Solution</div>
+                    <div class="pdf-cell-value">${esc(proj.cabinetSolution || "—")}</div>
+                </div>
+                `}
+
+                <!-- Row 3 -->
+                ${q.hideFields?.screenWidth ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Screen Width (FT)</div>
+                    <div class="pdf-cell-value">${esc(proj.screenWidth || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.totalArea ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Total Area (SQFT)</div>
+                    <div class="pdf-cell-value">${esc(proj.totalArea || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.mountingType ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Mounting Type</div>
+                    <div class="pdf-cell-value">${esc(proj.mountingType || "—")}</div>
+                </div>
+                `}
+
+                <!-- Row 4 -->
+                ${q.hideFields?.screenHeight ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Screen Height (FT)</div>
+                    <div class="pdf-cell-value">${esc(proj.screenHeight || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.heightFromGround ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Height From Ground (Ft)</div>
+                    <div class="pdf-cell-value">${esc(proj.heightFromGround ? proj.heightFromGround + " Ft" : "0")}</div>
+                </div>
+                `}
+                ${q.hideFields?.amc ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">AMC</div>
+                    <div class="pdf-cell-value">${esc(proj.amc || "—")}</div>
+                </div>
+                `}
+
+                <!-- Row 5 -->
+                ${q.hideFields?.actualWidthMM ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Actual Width (MM)</div>
+                    <div class="pdf-cell-value">${esc(proj.actualWidthMM || "—")} (${esc(String(proj.widthRounding || "DOWN").toUpperCase())})</div>
+                </div>
+                `}
+                ${q.hideFields?.viewingDistance ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Viewing Distance (Ft)</div>
+                    <div class="pdf-cell-value">${esc(proj.viewingDistance ? proj.viewingDistance + " Ft" : "0")}</div>
+                </div>
+                `}
+                ${q.hideFields?.siteVisit ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Site Visit</div>
+                    <div class="pdf-cell-value">${esc(proj.siteVisit || "—")}</div>
+                </div>
+                `}
+
+                <!-- Row 6 -->
+                ${q.hideFields?.actualHeightMM ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Actual Height (MM)</div>
+                    <div class="pdf-cell-value">${esc(proj.actualHeightMM || "—")} (${esc(String(proj.heightRounding || "DOWN").toUpperCase())})</div>
+                </div>
+                `}
+                ${q.hideFields?.powerPointDistance ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Power Point Distance (Ft)</div>
+                    <div class="pdf-cell-value">${esc(proj.powerPointDistance ? proj.powerPointDistance + " Ft" : "0")}</div>
+                </div>
+                `}
+                ${q.hideFields?.momOfSiteVisit ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">MOM of Site Visit</div>
+                    <div class="pdf-cell-value" style="white-space:pre-line;">${esc(proj.momOfSiteVisit || "—")}</div>
+                </div>
+                `}
+
+                <!-- Row 7 -->
+                ${q.hideFields?.numModulesW ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">No of Module/Cabinet in Width</div>
+                    <div class="pdf-cell-value">${esc(proj.numModulesW || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.numModulesH ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">No of Module/Cabinet in Height</div>
+                    <div class="pdf-cell-value">${esc(proj.numModulesH || "—")}</div>
+                </div>
+                `}
+                ${q.hideFields?.totalCabinets ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Total no. of Module/Cabinet</div>
+                    <div class="pdf-cell-value">${esc(proj.totalCabinets || "—")}</div>
+                </div>
+                `}
+            </div>
+        </div>
+
+        <!-- ======= SECTION 4: SCOPE OF WORK ======= -->
+        <div class="pdf-section-container">
+            <div class="pdf-section-header">Scope of Work</div>
+            <div class="pdf-grid-3">
+                <!-- Row 1 -->
+                ${q.hideFields?.scope_transport ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Transportation</div>
+                    <div class="pdf-cell-value">${scopeSpan(q.scope?.transport)}</div>
+                </div>
+                `}
+                ${q.hideFields?.scope_fabrication ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Fabrication / Frame</div>
+                    <div class="pdf-cell-value">${scopeSpan(q.scope?.fabrication)}</div>
+                </div>
+                `}
+                ${q.hideFields?.scope_stabilizer ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Stabilizer</div>
+                    <div class="pdf-cell-value">${scopeSpan(q.scope?.stabilizer)}</div>
+                </div>
+                `}
+                <!-- Row 2 -->
+                ${q.hideFields?.scope_siteReadiness ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Civil work & Site Readiness</div>
+                    <div class="pdf-cell-value">${scopeSpan(q.scope?.siteReadiness)}</div>
+                </div>
+                `}
+                ${q.hideFields?.scope_crane ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Crane / Hydra</div>
+                    <div class="pdf-cell-value">${scopeSpan(q.scope?.crane)}</div>
+                </div>
+                `}
+                ${q.hideFields?.scope_electrical ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Electrical Wiring & Earthing</div>
+                    <div class="pdf-cell-value">${scopeSpan(q.scope?.electrical)}</div>
+                </div>
+                `}
+                <!-- Row 3 -->
+                ${q.hideFields?.scope_installation ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Installation</div>
+                    <div class="pdf-cell-value">${scopeSpan(q.scope?.installation)}</div>
+                </div>
+                `}
+                ${q.hideFields?.scope_scaffolding ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">Scaffolding</div>
+                    <div class="pdf-cell-value">${scopeSpan(q.scope?.scaffolding)}</div>
+                </div>
+                `}
+                ${q.hideFields?.scope_lanCable ? "" : `
+                <div class="pdf-cell">
+                    <div class="pdf-cell-label">LAN Cabling</div>
+                    <div class="pdf-cell-value">${scopeSpan(q.scope?.lanCable)}</div>
+                </div>
+                `}
+            </div>
+        </div>
+
+        <!-- ======= SECTION 5: QUOTATION BREAKDOWN ======= -->
+        <div class="pdf-section-container">
+            <div class="pdf-section-header">Quotation Breakdown</div>
+            <table class="pdf-breakdown-table">
+                <thead>
+                    <tr>
+                        <th style="width: 30px; text-align: center;">S. N.</th>
+                        <th style="width: 70px;">Category</th>
+                        <th style="width: 85px;">Item</th>
+                        <th style="width: 45px;">Brand</th>
+                        <th style="width: 50px; text-align: center;">Spec</th>
+                        <th style="width: 80px; text-align: center;">Description</th>
+                        <th style="width: 35px; text-align: right;">Qty</th>
+                        <th style="width: 35px; text-align: center;">Unit</th>
+                        <th style="width: 85px; text-align: right;">Unit Price</th>
+                        <th style="width: 95px; text-align: right;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${lineRows || "<tr><td colspan='10' style='text-align:center;color:#aaa;'>No line items</td></tr>"}
+                </tbody>
+            </table>
+
+            <!-- ======= TOTALS ======= -->
+            <div class="pdf-totals">
+                <div class="pdf-totals-box">
+                    <div class="pdf-total-row">
+                        <span class="label">Subtotal :-</span>
+                        <span class="value">${fmtCurrency(s.subtotal)}</span>
+                    </div>
+                    ${q.hideGstInPdf ? "" : `
+                    <div class="pdf-total-row">
+                        <span class="label">GST :- (${esc(String(s.gstPct || 18))}%)</span>
+                        <span class="value">${fmtCurrency(s.gstAmt)}</span>
+                    </div>`}
+                    ${q.hideDiscountInPdf ? "" : `
+                    <div class="pdf-total-row">
+                        <span class="label">Discount :-</span>
+                        <span class="value" style="color:#c00;">− ${fmtCurrency(s.discount)}</span>
+                    </div>`}
+                    <div class="pdf-total-row pdf-grand-total">
+                        <span class="label">Grand Total :-</span>
+                        <span class="value">${fmtCurrency(s.grandTotal)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======= SECTION 6: TERMS & CONDITIONS ======= -->
+        <div class="pdf-section-container">
+            <div class="pdf-section-header">6. Terms &amp; Conditions</div>
+            <div class="pdf-terms">
+                <ol style="margin: 0; padding-left: 16px;">
+                    ${termItems || "<li>No terms specified</li>"}
+                </ol>
+            </div>
+        </div>
+
+        <!-- ======= SECTION 7: REMARKS (DYNAMIC ADJUSTMENT) ======= -->
+        ${remarkHtml}
+
+        <!-- ======= SECTION 8: ATTACHMENT ======= -->
+        <!-- ======= SECTION 8: ATTACHMENT ======= -->
+        ${attachmentsList.length > 0 ? `
+        <div class="pdf-section-container">
+            <div class="pdf-section-header">Quotation Attachment</div>
+            <div class="pdf-attachments-list" style="display: flex; flex-direction: column;">
+                ${attachmentsList.map((att, idx) => {
+                    const bg = idx % 2 === 0 ? '#fff' : '#f8fafc';
+                    const borderTop = idx > 0 ? '1px solid #e2e8f0' : 'none';
+                    return `
+                    <div class="pdf-attachment-item" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; border:none; border-top:${borderTop}; padding:10px 12px; background:${bg};">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:18px;">📎</span>
+                            <div>
+                                <div style="font-size:10.5px; font-weight:700; color:#2c3e50; font-family:'Space Grotesk',sans-serif;">${esc(att.filename)}</div>
+                                <div style="font-size:8.5px; color:#7f8c8d;">Supporting Document #${idx + 1}</div>
+                            </div>
+                        </div>
+                        ${(() => {
+                            const dlUrl = att.driveUrl ? getDirectDownloadUrl(att.driveUrl) : null;
+                            if (dlUrl) {
+                                return `<a href="${esc(dlUrl)}" target="_blank" class="pdf-btn" style="background:#582f4c; color:#fff; text-decoration:none; font-size:9.5px; padding:5px 10px; border-radius:4px; font-weight:600; display:inline-block;">📥 Download Attachment</a>`;
+                            } else {
+                                return `<a href="data:${esc(att.mimeType || 'application/octet-stream')};base64,${att.base64}" download="${esc(att.filename)}" class="pdf-btn" style="background:#582f4c; color:#fff; text-decoration:none; font-size:9.5px; padding:5px 10px; border-radius:4px; font-weight:600; display:inline-block;">📥 Download Attachment</a>`;
+                            }
+                        })()}
+                    </div>
+                    `;
+                }).join("")}
+            </div>
+        </div>
+        ` : ""}
+
+
+        <!-- ======= SIGNATURE & CLOSING FOOTER ======= -->
+        <div style="text-align:center;padding:16px 20px;font-size:10px;color:#555;background:#fcfbfa;border:1px solid #582f4c;border-radius:4px;font-family:'Space Grotesk',sans-serif;margin-top:10px;box-sizing:border-box;">
+            <div style="font-weight:700;margin-bottom:4px;color:#582f4c;">Thank you for choosing us—we appreciate the opportunity to serve you.</div>
+            <div style="font-size:9px;color:#666;">This quotation is valid for 15 days from the date of issue. &nbsp;|&nbsp; KAN UNIVERSAL PVT LTD – Professional LED Display Solutions</div>
+        </div>
+        `;
+
+        paginatePdf("pdfDoc");
+
+        /* Update page title */
+        document.title = `${q.quotationNo || "Quotation"} — KAN Universal`;
+    }
+
+    function overlayPdfLinks(pdf, element) {
+        const pages = element.querySelectorAll(".pdf-page");
+        // A4 page: 210mm wide × 297mm tall. pdf-page DOM element: 724px wide × 1055px tall
+        const pxToMmX = 210 / 724;
+        const pxToMmY = 297 / 1055;
+
+        pages.forEach((page, pageIndex) => {
+            const links = page.querySelectorAll("a[href]");
+            const pageRect = page.getBoundingClientRect();
+            // pageRect.top is relative to viewport; adjust for scroll position
+            const pageTop  = pageRect.top  + window.scrollY;
+            const pageLeft = pageRect.left + window.scrollX;
+
+            links.forEach(link => {
+                const rawHref = link.getAttribute("href") || "";
+                if (!rawHref || rawHref === "#" || rawHref.startsWith("javascript:")) return;
+
+                let absoluteUrl = "";
+
+                if (rawHref.startsWith("data:")) {
+                    // data: URI — resolve to Google Drive direct-download URL from attachment list
+                    const filename = link.getAttribute("download") || "";
+                    const attachments = q ? (q.attachments || (q.attachment ? [q.attachment] : [])) : [];
+                    const matchedAtt = attachments.find(a => a && (a.filename === filename || a.driveUrl));
+                    if (matchedAtt && matchedAtt.driveUrl) {
+                        absoluteUrl = getDirectDownloadUrl(matchedAtt.driveUrl);
+                    } else {
+                        // No drive URL available — skip this link
+                        return;
+                    }
+                } else if (rawHref.startsWith("http://") || rawHref.startsWith("https://") || rawHref.startsWith("mailto:")) {
+                    absoluteUrl = rawHref;
+                } else {
+                    const loc = window.location;
+                    absoluteUrl = loc.origin + "/" + rawHref.replace(/^\//, "");
+                }
+
+                if (!absoluteUrl) return;
+
+                // Get element bounding rect relative to page (accounting for scroll)
+                const linkRect = link.getBoundingClientRect();
+                const relX = (linkRect.left + window.scrollX) - pageLeft;
+                const relY = (linkRect.top  + window.scrollY) - pageTop;
+                const relW = linkRect.width;
+                const relH = linkRect.height;
+
+                // Skip if outside page bounds
+                if (relX < 0 || relY < 0 || relX > 724 || relY > 1055) return;
+
+                const xMm = relX * pxToMmX;
+                const yMm = relY * pxToMmY;
+                const wMm = relW * pxToMmX;
+                const hMm = relH * pxToMmY;
+
+                if (pageIndex < pdf.getNumberOfPages()) {
+                    pdf.setPage(pageIndex + 1);
+                    pdf.link(xMm, yMm, wMm, hMm, { url: absoluteUrl });
+                }
+            });
+        });
+    }
+
+    /* ---- Direct PDF Download (1-click) ---- */
+    window.downloadPdfDirect = async function() {
+        const pages = document.querySelectorAll(".pdf-page");
+        if (pages.length === 0) return;
+
+        const filename = q ? `${q.quotationNo}.pdf` : "Quotation.pdf";
+        toast("📄 Generating PDF — please wait a moment...", "info");
+
+        // Step 1: Ensure Drive URLs are fetched before building PDF
+        if (q && q.quotationNo && typeof GOOGLE_SHEET_WEBAPP_URL !== "undefined" && GOOGLE_SHEET_WEBAPP_URL) {
+            const attachments = q.attachments || (q.attachment ? [q.attachment] : []);
+            const anyMissing = attachments.some(a => a && !a.driveUrl);
+            if (anyMissing) {
+                try {
+                    const fetchUrl = `${GOOGLE_SHEET_WEBAPP_URL}?action=getAttachmentUrl&id=${encodeURIComponent(q.quotationNo)}`;
+                    const res = await fetch(fetchUrl).then(r => r.json());
+                    if (res && res.status === "success" && res.url) {
+                        const driveUrls = res.url.split("\n").map(u => u.trim()).filter(u => u.startsWith("http"));
+                        if (!q.attachments) q.attachments = attachments;
+                        driveUrls.forEach((url, i) => { if (q.attachments[i]) q.attachments[i].driveUrl = url; });
+                        if (driveUrls.length > 0 && q.attachment) q.attachment.driveUrl = driveUrls[0];
+                        // Persist and re-render so buttons show real Drive links
+                        const all = JSON.parse(localStorage.getItem("kan_quotations") || "[]");
+                        const idx = all.findIndex(item => item._id === q._id);
+                        if (idx !== -1) {
+                            if (!all[idx].attachments) all[idx].attachments = [];
+                            driveUrls.forEach((url, i) => { if (all[idx].attachments[i]) all[idx].attachments[i].driveUrl = url; });
+                            if (driveUrls.length > 0) { all[idx].attachment = all[idx].attachment || {}; all[idx].attachment.driveUrl = driveUrls[0]; }
+                            localStorage.setItem("kan_quotations", JSON.stringify(all));
+                        }
+                        renderQuotation(q);
+                        // Wait a tick for re-render to complete
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    }
+                } catch(e) { /* fetch failed, continue anyway */ }
+            }
+        }
+
+        // Step 2: Scroll to top and wait for layout to settle
+        window.scrollTo(0, 0);
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        // Step 3: Render all pages
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF("portrait", "mm", "a4");
+        let pageIndex = 0;
+
+        function renderNextPage() {
+            if (pageIndex >= pages.length) {
+                // Step 4: Overlay link annotations on top of rendered images
+                overlayPdfLinks(pdf, document.getElementById("pdfDoc"));
+                pdf.save(filename);
+                toast("✅ PDF downloaded successfully!", "success");
+                return;
+            }
+
+            if (pageIndex > 0) pdf.addPage();
+
+            html2canvas(pages[pageIndex], {
+                scale:           4,
+                useCORS:         true,
+                letterRendering: true,
+                width:           724,
+                height:          1055
+            }).then(function(canvas) {
+                pdf.addImage(canvas.toDataURL("image/jpeg", 0.97), "JPEG", 0, 0, 210, 297);
+                pageIndex++;
+                renderNextPage();
+            }).catch(function(err) {
+                console.error("Canvas error:", err);
+                toast("❌ PDF download failed. Use the Print button instead.", "error");
+            });
+        }
+
+        renderNextPage();
+    };
+
+    q = loadQuotation();
+    renderQuotation(q);
+
+    /* Fetch direct download URLs from Google Sheet for any attachments missing driveUrl */
+    (function fetchMissingDriveUrls() {
+        if (!q || !q._id) return;
+        if (typeof GOOGLE_SHEET_WEBAPP_URL === "undefined" || !GOOGLE_SHEET_WEBAPP_URL) return;
+
+        const attachments = q.attachments || (q.attachment ? [q.attachment] : []);
+        const anyMissingDriveUrl = attachments.some(a => a && !a.driveUrl);
+        if (!anyMissingDriveUrl) return;
+
+        // CRITICAL FIX: Column A (REF) in Google Sheets stores quotationNo, NOT _id
+        const fetchUrl = `${GOOGLE_SHEET_WEBAPP_URL}?action=getAttachmentUrl&id=${encodeURIComponent(q.quotationNo || q._id)}`;
+        fetch(fetchUrl)
+            .then(res => res.json())
+            .then(res => {
+                if (res && res.status === "success" && res.url) {
+                    // res.url is a newline-joined string of Drive URLs
+                    const driveUrls = res.url.split("\n").map(u => u.trim()).filter(u => u.startsWith("http"));
+
+                    // Write each Drive URL to q.attachments[i].driveUrl in memory
+                    if (!q.attachments) q.attachments = attachments;
+                    driveUrls.forEach((url, i) => {
+                        if (q.attachments[i]) q.attachments[i].driveUrl = url;
+                    });
+                    // Backward-compat single attachment
+                    if (driveUrls.length > 0 && q.attachment) {
+                        q.attachment.driveUrl = driveUrls[0];
+                    }
+
+                    // Persist to localStorage
+                    const all = JSON.parse(localStorage.getItem("kan_quotations") || "[]");
+                    const idx = all.findIndex(item => item._id === q._id);
+                    if (idx !== -1) {
+                        if (!all[idx].attachments) all[idx].attachments = [];
+                        driveUrls.forEach((url, i) => {
+                            if (all[idx].attachments[i]) all[idx].attachments[i].driveUrl = url;
+                        });
+                        if (driveUrls.length > 0) {
+                            all[idx].attachment = all[idx].attachment || {};
+                            all[idx].attachment.driveUrl = driveUrls[0];
+                        }
+                        localStorage.setItem("kan_quotations", JSON.stringify(all));
+                    }
+
+                    // Re-render so buttons show real Drive links
+                    renderQuotation(q);
+                }
+            })
+            .catch(err => console.error("Error fetching attachment Drive URLs:", err));
+    })();
+
+    /* Show Edit button if sales rep user session is active */
+    if (user) {
+        const editBtn = document.getElementById("pdfEditBtn");
+        if (editBtn) {
+            editBtn.style.display = "inline-block";
+            editBtn.addEventListener("click", () => {
+                const urlId = urlParams.get("id") || sessionStorage.getItem("kan_view_quote_id");
+                if (urlId) {
+                    sessionStorage.setItem("kan_active_quote", urlId);
+                    sessionStorage.setItem("kan_edit_mode", "true");
+                    window.location.href = "create.html";
+                }
+            });
+        }
+    }
+
+    /* Automatic trigger if query param download=true is present */
+    if (urlParams.get("download") === "true") {
+        setTimeout(() => {
+            if (typeof downloadPdfDirect === "function") {
+                downloadPdfDirect();
+            }
+        }, 1500); // 1.5s delay to ensure all CDN scripts and images are loaded for clean rendering
+    }
+
+})();
+</script>
+
+</body>
+</html>

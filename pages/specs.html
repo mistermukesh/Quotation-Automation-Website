@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Specifications — KAN Universal</title>
+    <meta name="description" content="View detailed technical specifications for KAN Universal LED displays.">
+    <link rel="icon" href="https://lh3.googleusercontent.com/d/1Yd9L7l28qCJv3FePPixY_o8j8Be0ot82">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #060406;
+            --surface: rgba(20, 18, 20, 0.60);
+            --surface-hover: rgba(30, 24, 30, 0.80);
+            --primary: #ab97a5;
+            --primary-glow: rgba(88, 47, 76, 0.18);
+            --text: #f3f3f6;
+            --text-secondary: #9ea0b8;
+            --border: rgba(255, 255, 255, 0.08);
+            --gradient: linear-gradient(135deg, rgba(20, 18, 20, 0.70) 0%, rgba(10, 8, 10, 0.80) 100%);
+            --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(88, 47, 76, 0.15) 0%, transparent 60%),
+                radial-gradient(circle at 90% 80%, rgba(138, 109, 129, 0.12) 0%, transparent 60%);
+        }
+
+        /* Glassmorphism card container */
+        .spec-container {
+            background: var(--gradient);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            position: relative;
+            overflow: hidden;
+            animation: premium-entrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .spec-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, var(--primary-glow) 0%, transparent 60%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .content-wrapper {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header block */
+        .brand-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .brand-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+        }
+
+        .brand-title {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            text-transform: uppercase;
+        }
+
+        .brand-title span {
+            color: var(--primary);
+        }
+
+        .category-badge {
+            display: inline-block;
+            background: rgba(88, 47, 76, 0.12);
+            color: var(--primary);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(88, 47, 76, 0.3);
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .product-title {
+            font-family: var(--font-display);
+            font-size: 36px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -1px;
+            margin-bottom: 15px;
+            background: linear-gradient(180deg, #ffffff 0%, #c4c5cf 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .product-description {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 35px;
+        }
+
+        /* Specifications Grid */
+        .spec-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .spec-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 20px;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .spec-card:hover {
+            background: var(--surface-hover);
+            transform: translateY(-2px);
+            border-color: rgba(88, 47, 76, 0.4);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .spec-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .spec-value {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        /* Back to creator link */
+        .footer-action {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border);
+            padding-top: 25px;
+            margin-top: 10px;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--text);
+        }
+
+        .btn-external {
+            color: var(--primary);
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s ease;
+        }
+
+        .btn-external:hover {
+            color: #ccc0c9;
+            text-decoration: underline;
+        }
+
+        .spec-card {
+            opacity: 0;
+            animation: premium-entrance 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .spec-card:nth-child(1) { animation-delay: 100ms; }
+        .spec-card:nth-child(2) { animation-delay: 150ms; }
+        .spec-card:nth-child(3) { animation-delay: 200ms; }
+        .spec-card:nth-child(4) { animation-delay: 250ms; }
+        .spec-card:nth-child(5) { animation-delay: 300ms; }
+        .spec-card:nth-child(6) { animation-delay: 350ms; }
+        .spec-card:nth-child(n+7) { animation-delay: 400ms; }
+
+        /* Animations */
+        @keyframes premium-entrance {
+            0% {
+                opacity: 0;
+                transform: translate3d(16px, 24px, 0) scale(0.96);
+                filter: blur(6px);
+            }
+            100% {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+                filter: blur(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .spec-container {
+                padding: 24px;
+            }
+
+            .product-title {
+                font-size: 28px;
+            }
+
+            .spec-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<main class="spec-container">
+    <div class="content-wrapper">
+        <!-- Logo Header -->
+        <header class="brand-header">
+            <img src="https://lh3.googleusercontent.com/d/1Yd9L7l28qCJv3FePPixY_o8j8Be0ot82" alt="KAN Logo" class="brand-logo">
+            <h1 class="brand-title">KAN <span>Universal</span></h1>
+        </header>
+
+        <!-- Category -->
+        <div class="category-badge" id="productCategory">Category</div>
+
+        <!-- Product Name -->
+        <h2 class="product-title" id="productTitle">Product Model</h2>
+
+        <!-- Description -->
+        <p class="product-description" id="productDescription">Specifications and technical metadata description.</p>
+
+        <!-- Technical Specification cards -->
+        <section class="spec-grid" id="specGrid">
+            <!-- Dynamically populated spec cards -->
+        </section>
+
+        <!-- Footer Actions -->
+        <footer class="footer-action">
+            <a href="javascript:window.close();" class="btn-back">✕ Close Window</a>
+            <a href="https://www.kanuniversal.com" target="_blank" rel="noopener" class="btn-external" id="externalLink">Visit kanuniversal.com ↗</a>
+        </footer>
+    </div>
+</main>
+
+<script src="../assets/js/specs.js"></script>
+<script src="../assets/js/credentials.js"></script>
+<script>
+    (() => {
+        "use strict";
+
+        // Parse search parameters
+        const params   = new URLSearchParams(window.location.search);
+        const category = params.get("category") || "";
+        const item     = params.get("item")     || "";
+        const descVal  = params.get("desc")     || "";
+
+        // DOM elements
+        const categoryBadge = document.getElementById("productCategory");
+        const productTitle  = document.getElementById("productTitle");
+        const productDesc   = document.getElementById("productDescription");
+        const specGrid      = document.getElementById("specGrid");
+        const externalLink  = document.getElementById("externalLink");
+
+        // Helper to safely HTML-escape strings
+        function escHtml(s) {
+            return String(s == null ? "" : s).replace(/[&<>"']/g,
+                m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m]));
+        }
+
+        // Render an array of {label, value} cards into specGrid
+        function renderCards(cards) {
+            if (!cards || cards.length === 0) {
+                specGrid.innerHTML = `<div class="spec-card" style="grid-column:1/-1;">
+                    <div class="spec-label">Status</div>
+                    <div class="spec-value">No technical specifications available for this product yet.</div>
+                </div>`;
+                return;
+            }
+            specGrid.innerHTML = cards.map(c => `
+                <div class="spec-card">
+                    <div class="spec-label">${escHtml(c.label)}</div>
+                    <div class="spec-value">${escHtml(c.value)}</div>
+                </div>
+            `).join("");
+        }
+
+        // Parse a raw spec string like "• Pixel Pitch (mm):1.53\n• LED Type:SMD (3-in-1)" into cards
+        function parseSpecString(specStr) {
+            if (!specStr) return [];
+            const cards = [];
+            // Split on bullet point lines
+            const lines = String(specStr).split(/\n|•/).map(l => l.trim()).filter(Boolean);
+            lines.forEach(line => {
+                const colonIdx = line.indexOf(":");
+                if (colonIdx > 0) {
+                    cards.push({
+                        label: line.substring(0, colonIdx).replace(/^[•\-\s]+/, "").trim(),
+                        value: line.substring(colonIdx + 1).trim()
+                    });
+                } else if (line.length > 0) {
+                    cards.push({ label: "Detail", value: line });
+                }
+            });
+            return cards;
+        }
+
+        // --- Handle ?desc= mode (custom specification string passed inline) ---
+        if (descVal) {
+            categoryBadge.textContent = category || "Custom Configuration";
+            productTitle.textContent  = item     || "Quoted Specification";
+            productDesc.textContent   = "Custom details specified for this display project during quotation generation:";
+
+            const cards = parseSpecString(descVal);
+            if (cards.length === 0) {
+                // descVal might be pipe-delimited legacy format
+                const pairs = descVal.split(" | ");
+                pairs.forEach(p => {
+                    const idx = p.indexOf(":");
+                    if (idx !== -1) {
+                        cards.push({ label: p.substring(0, idx).trim(), value: p.substring(idx + 1).trim() });
+                    } else if (p.trim()) {
+                        cards.push({ label: "Detail", value: p.trim() });
+                    }
+                });
+            }
+            categoryBadge.textContent = category || "Custom Configuration";
+            productTitle.textContent  = item     || "Quoted Specification";
+            renderCards(cards);
+            return;
+        }
+
+        // --- Render page header immediately ---
+        categoryBadge.textContent = category || "General Product Spec";
+        productTitle.textContent  = item     || "Standard Model";
+        productDesc.textContent   = "Loading product specification…";
+
+        // --- Normalize category for lookup (handles "Screen → Module" → "SCREEN") ---
+        function normalizeCategory(cat) {
+            const raw = String(cat || "").trim();
+            if (/screen\s*[→\->]\s*module/i.test(raw)) return "SCREEN";
+            if (/^screen$/i.test(raw)) return "SCREEN";
+            if (/^cabinet$/i.test(raw)) return "CABINET";
+            return raw.toUpperCase();
+        }
+
+        // --- Try local PRODUCT_SPECS first (fast, offline) ---
+        function tryLocalSpec() {
+            if (typeof getProductSpec !== "function") return null;
+            return getProductSpec(category, item);
+        }
+
+        function showLocalSpec(entry) {
+            productDesc.textContent = entry.description || "Technical product specification from KAN Universal catalog.";
+            if (entry.url && entry.url !== window.location.href) {
+                externalLink.href = entry.url;
+                externalLink.style.display = "";
+            }
+            const cards = [];
+            if (entry.brand)         cards.push({ label: "Brand / Manufacturer", value: entry.brand });
+            if (entry.pixelPitch)    cards.push({ label: "Pixel Pitch", value: entry.pixelPitch });
+            if (entry.minViewDist)   cards.push({ label: "Best Viewing Distance", value: entry.minViewDist });
+            if (entry.cabinetSize)   cards.push({ label: "Module / Cabinet Size", value: entry.cabinetSize });
+            if (entry.weight)        cards.push({ label: "Weight (approx)", value: entry.weight });
+            if (entry.power)         cards.push({ label: "Power Consumption", value: entry.power });
+            if (cards.length === 0)  cards.push({ label: "Status", value: "Available in catalog" });
+            renderCards(cards);
+        }
+
+        // --- Fetch live data from Google Sheet PRODUCT!B2:E ---
+        async function fetchAndRender() {
+            // First try the fast local PRODUCT_SPECS fallback
+            const localSpec = tryLocalSpec();
+            if (localSpec) {
+                showLocalSpec(localSpec);
+                // Still try to fetch live; if we get a better result, replace
+            }
+
+            try {
+                const url = `${GOOGLE_SHEET_WEBAPP_URL}?action=getProducts`;
+                const res = await fetch(url);
+                const json = await res.json();
+
+                if (json.status !== "success" || !Array.isArray(json.data) || json.data.length === 0) {
+                    if (!localSpec) {
+                        productDesc.textContent = "Could not load product data. Please check your connection.";
+                        renderCards([]);
+                    }
+                    return;
+                }
+
+                // json.data is array of [category, item, brand, spec]
+                // Find the matching row by normalized category and item name
+                const normCat  = normalizeCategory(category);
+                const normItem = (item || "").toUpperCase().trim();
+
+                const match = json.data.find(row => {
+                    const rowCat  = normalizeCategory(String(row[0] || ""));
+                    const rowItem = String(row[1] || "").toUpperCase().trim();
+                    return rowCat === normCat && rowItem === normItem;
+                });
+
+                if (!match) {
+                    // No live match — keep local spec if found, otherwise show not-found
+                    if (!localSpec) {
+                        productDesc.textContent = `Detailed technical specification sheet for "${item}" is currently being registered.`;
+                        renderCards([
+                            { label: "Brand / Manufacturer", value: "KAN Universal" },
+                            { label: "Category", value: category },
+                            { label: "Status", value: "Specification sheet will be available soon. Contact the engineering department for physical specs." }
+                        ]);
+                    }
+                    return;
+                }
+
+                // match = [category, item, brand, spec]
+                const liveCategory = match[0] || category;
+                const liveItem     = match[1] || item;
+                const liveBrand    = match[2] || "KAN";
+                const liveSpec     = match[3] || "";
+
+                categoryBadge.textContent = liveCategory;
+                productTitle.textContent  = liveItem;
+
+                // Parse spec string into cards
+                const specCards = parseSpecString(liveSpec);
+
+                if (specCards.length > 0) {
+                    productDesc.textContent = "Technical specifications as registered in the KAN Universal product catalog.";
+                    // Prepend brand card
+                    const allCards = [{ label: "Brand / Manufacturer", value: liveBrand }, ...specCards];
+                    renderCards(allCards);
+                } else if (liveBrand) {
+                    productDesc.textContent = "Product available in the KAN Universal catalog.";
+                    renderCards([
+                        { label: "Brand / Manufacturer", value: liveBrand },
+                        { label: "Model", value: liveItem },
+                        { label: "Category", value: liveCategory }
+                    ]);
+                } else if (localSpec) {
+                    showLocalSpec(localSpec);
+                } else {
+                    productDesc.textContent = "Basic product entry — full spec sheet not yet available.";
+                    renderCards([{ label: "Brand / Manufacturer", value: liveBrand || "KAN Universal" }]);
+                }
+
+            } catch (err) {
+                console.error("Failed to fetch product data:", err);
+                if (!localSpec) {
+                    productDesc.textContent = "Could not load live product data. Showing offline catalog.";
+                    renderCards([{ label: "Status", value: "Connection error — please try again." }]);
+                }
+            }
+        }
+
+        fetchAndRender();
+    })();
+</script>
+
+</body>
+</html>

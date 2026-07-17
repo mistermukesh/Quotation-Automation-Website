@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Quotation — KAN Universal Sales Quotation System</title>
+    <meta name="description" content="Create a new sales quotation for KAN Universal Pvt Ltd.">
+    <link rel="icon" href="https://lh3.googleusercontent.com/d/1Yd9L7l28qCJv3FePPixY_o8j8Be0ot82">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/pdf.css">
+</head>
+
+<body>
+
+    <!-- Loading overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loader-ring"></div>
+        <p id="loadingText">Loading…</p>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- ============================================================
+     TOPBAR
+     ============================================================ -->
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a href="dashboard.html" class="brand">
+                <img src="https://lh3.googleusercontent.com/d/1Yd9L7l28qCJv3FePPixY_o8j8Be0ot82" alt="KAN Universal"
+                    class="brand-logo">
+                <div class="brand-text">
+                    <span class="brand-name">KAN Universal</span>
+                    <span class="brand-sub">Sales Quotation System</span>
+                </div>
+            </a>
+
+            <div class="topbar-actions">
+                <span class="eyebrow" id="quoteStatusLabel">◉ New Quotation</span>
+                <span id="quoteRefChip" class="ref-chip hidden">—</span>
+
+                <div class="topbar-user">
+                    <span id="topbarUserName" class="user-badge">—</span>
+                    <span id="topbarUserRole" class="text-faint" style="font-size:11px;"></span>
+                </div>
+
+                <!-- Theme toggle -->
+                <button type="button" id="themeToggle" class="theme-toggle" title="Toggle dark/light mode">
+                    <svg id="themeIconMoon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z" />
+                    </svg>
+                    <svg id="themeIconSun" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                        stroke-width="2" class="hidden">
+                        <circle cx="12" cy="12" r="5" />
+                        <line x1="12" y1="1" x2="12" y2="3" />
+                        <line x1="12" y1="21" x2="12" y2="23" />
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                        <line x1="1" y1="12" x2="3" y2="12" />
+                        <line x1="21" y1="12" x2="23" y2="12" />
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                    </svg>
+                    <span id="themeLabel">Light</span>
+                </button>
+
+                <button type="button" id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================================
+     MAIN FORM
+     ============================================================ -->
+    <main class="page">
+        <form id="quotationForm" novalidate>
+
+            <!-- Sections are loaded here dynamically -->
+            <div id="sectionsContainer">
+                <!-- Section 1: Sales Rep -->
+                <div id="slot-section1">
+                    <!-- ==========================================================================
+     SECTION 1 — SALES REPRESENTATIVE
+     Partial loaded into create.html
+     ========================================================================== -->
+                    <section class="card" id="section-sales">
+                        <div class="card-head">
+                            <span class="eyebrow">◉ 01 — Sales Representative</span>
+                            <h2>Who's raising this quote?</h2>
+                        </div>
+                        <div class="grid grid-3">
+                            <!-- Sales Person (Admin: dropdown; User: locked) -->
+                            <div class="field">
+                                <label for="salesRep">Sales Person <span class="req">*</span></label>
+                                <select id="salesRep" name="salesRep" required>
+                                    <option value="" disabled selected>Select Sales Person</option>
+                                </select>
+                                <span class="error-msg" data-for="salesRep"></span>
+                            </div>
+                            <div class="field">
+                                <label for="salesEmail">Email</label>
+                                <input type="email" id="salesEmail" name="salesEmail" readonly
+                                    placeholder="Auto-filled">
+                            </div>
+                            <div class="field">
+                                <label for="salesContact">Contact</label>
+                                <input type="text" id="salesContact" name="salesContact" readonly
+                                    placeholder="Auto-filled">
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+                <!-- Section 2: Client Info -->
+                <div id="slot-section2">
+                    <!-- ==========================================================================
+     SECTION 2 — CLIENT INFORMATION
+     Partial loaded into create.html
+     ========================================================================== -->
+                    <section class="card" id="section-client">
+                        <div class="card-head">
+                            <span class="eyebrow">◉ 02 — Client Information</span>
+                            <h2>Who's the client?</h2>
+                        </div>
+
+                        <!-- Row 1: Basic Info -->
+                        <div class="grid grid-3">
+                            <div class="field">
+                                <label for="clientName" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Client Name <span class="req">*</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="clientName" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+                                <input type="text" id="clientName" name="clientName" required minlength="3"
+                                    placeholder="CLIENT NAME" autocomplete="off" style="text-transform:uppercase;">
+                                <span class="error-msg" data-for="clientName"></span>
+                            </div>
+                            <div class="field">
+                                <label for="companyName" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Company Name <span class="req">*</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="companyName" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+                                <input type="text" id="companyName" name="companyName" required
+                                    placeholder="COMPANY NAME" autocomplete="off" style="text-transform:uppercase;">
+                                <span class="error-msg" data-for="companyName"></span>
+                            </div>
+                            <div class="field">
+                                <label for="clientEmail" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Email <span class="hint">(optional)</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="clientEmail" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+                                <input type="email" id="clientEmail" name="clientEmail"
+                                    placeholder="example@company.com" autocomplete="off">
+                                <span class="error-msg" data-for="clientEmail"></span>
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Contact, GST, Org Type -->
+                        <div class="grid grid-3">
+                            <div class="field">
+                                <label for="clientContact" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Contact Number <span class="req">*</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="clientContact" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+                                <input type="text" id="clientContact" name="clientContact" required maxlength="10"
+                                    inputmode="numeric" placeholder="10-digit mobile" autocomplete="off">
+                                <span class="error-msg" data-for="clientContact"></span>
+                            </div>
+                            <div class="field">
+                                <label for="gstNumber" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>GST No <span class="hint">(optional)</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="gstNumber" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+                                <input type="text" id="gstNumber" name="gstNumber" maxlength="15"
+                                    placeholder="07ABCDE1234F1Z5" autocomplete="off" style="text-transform:uppercase;">
+                                <span class="error-msg" data-for="gstNumber"></span>
+                            </div>
+                            <div class="field">
+                                <label style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Organization Type <span class="req">*</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="orgType" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+                                <div class="radio-pill-group">
+                                    <label class="radio-pill">
+                                        <input type="radio" name="orgType" value="GOVERNMENT" required>
+                                        <span>🏛 Government</span>
+                                    </label>
+                                    <label class="radio-pill">
+                                        <input type="radio" name="orgType" value="PRIVATE">
+                                        <span>🏢 Private</span>
+                                    </label>
+                                </div>
+                                <span class="error-msg" data-for="orgType"></span>
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Addresses with same-address checkbox -->
+                        <div class="grid grid-2">
+                            <div class="field">
+                                <label for="clientAddress" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Client Address <span class="req">*</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="clientAddress" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+                                <textarea id="clientAddress" name="clientAddress" required rows="3"
+                                    placeholder="Full billing / client address"></textarea>
+                                <span class="error-msg" data-for="clientAddress"></span>
+                            </div>
+                            <div class="field">
+                                <div
+                                    style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px; margin-bottom: 4px;">
+                                    <label for="siteAddress" style="display:flex; justify-content:space-between; align-items:center; width:100%; margin:0;">
+                                        <span>Site Address <span class="req">*</span></span>
+                                        <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                            <input type="checkbox" class="hide-pdf-checkbox" data-field="siteAddress" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                        </span>
+                                    </label>
+                                    <div class="checkbox-row" style="margin:0; margin-left: auto;">
+                                        <input type="checkbox" id="sameAddressCheck" name="sameAddressCheck">
+                                        <label for="sameAddressCheck"
+                                            style="font-size:11px;color:var(--text-dim);text-transform:none;letter-spacing:normal;cursor:pointer; margin:0;">
+                                            Same as Client Address
+                                        </label>
+                                    </div>
+                                </div>
+                                <textarea id="siteAddress" name="siteAddress" required rows="3"
+                                    placeholder="Installation / site address"></textarea>
+                                <span class="error-msg" data-for="siteAddress"></span>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+                <!-- Section 3: Project Details -->
+                <div id="slot-section3">
+                    <!-- ==========================================================================
+     SECTION 3 — PROJECT DETAILS
+     Partial loaded into create.html
+     ========================================================================== -->
+                    <section class="card" id="section-project">
+                        <div class="card-head">
+                            <span class="eyebrow">◉ 03 — Project Details</span>
+                            <h2>Screen specification &amp; sizing engine</h2>
+                        </div>
+
+                        <!-- ── Row 1: Project Type + Module / Cabinet Size ────────────────────── -->
+                        <div class="grid grid-2">
+                            <div class="field">
+                                <label style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Project Type <span class="req">*</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="projectType" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+                                <div class="radio-pill-group" data-name="projectType">
+                                    <label class="radio-pill">
+                                        <input type="radio" name="projectType" value="INDOOR" required>
+                                        <span>🏢 Indoor</span>
+                                    </label>
+                                    <label class="radio-pill">
+                                        <input type="radio" name="projectType" value="OUTDOOR">
+                                        <span>🌤 Outdoor</span>
+                                    </label>
+                                </div>
+                                <span class="error-msg" data-for="projectType"></span>
+                            </div>
+
+                            <div class="field">
+                                <label style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Module / Cabinet Size <span class="req">*</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="moduleSize" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+
+                                <!-- Category Selector -->
+                                <div class="radio-pill-group" id="moduleCategoryGroup" style="flex-wrap:wrap; gap:6px;">
+                                    <label class="radio-pill">
+                                        <input type="radio" name="moduleCategory" value="screen">
+                                        <span>📺 Screen</span>
+                                    </label>
+                                    <label class="radio-pill">
+                                        <input type="radio" name="moduleCategory" value="cob">
+                                        <span>💡 COB</span>
+                                    </label>
+                                    <label class="radio-pill">
+                                        <input type="radio" name="moduleCategory" value="diecast">
+                                        <span>🧱 Diecast</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ── Sub-Options Panel (Full Width for Symmetrical Grid Alignment) ────────────────── -->
+                        <div class="sub-options-panel" id="subOptionsPanel"
+                            style="display: none; margin-top: 12px; margin-bottom: 12px;">
+                            <!-- Category: Screen -->
+                            <div id="categoryScreenContainer" class="size-sub-container" style="display: none;">
+                                <span class="sub-label">Select Screen Module Size:</span>
+                                <div class="radio-pill-group" style="flex-wrap:wrap;gap:6px;">
+                                    <label class="radio-pill">
+                                        <input type="radio" name="moduleSize" value="192x192" required>
+                                        <span>192 × 192 <em>(Module)</em></span>
+                                    </label>
+                                    <label class="radio-pill">
+                                        <input type="radio" name="moduleSize" value="320x160">
+                                        <span>320 × 160 <em>(Module)</em></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Category: COB -->
+                            <div id="categoryCOBContainer" class="size-sub-container" style="display: none;">
+                                <span class="sub-label">Select COB Cabinet Size:</span>
+                                <div class="radio-pill-group" style="flex-wrap:wrap;gap:6px;">
+                                    <label class="radio-pill">
+                                        <input type="radio" name="moduleSize" value="600x337.5">
+                                        <span>600 × 337.5 <em>(COB Cabinet)</em></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Category: Diecast -->
+                            <div id="categoryDiecastContainer" class="size-sub-container" style="display: none;">
+                                <!-- Diecast Cabinet Size Selector -->
+                                <span class="sub-label">Select Diecast Cabinet Size:</span>
+                                <div class="radio-pill-group" id="diecastCabinetSizeGroup"
+                                    style="margin-bottom: 12px; flex-wrap:wrap; gap:6px;">
+                                    <label class="radio-pill">
+                                        <input type="radio" name="diecastCabinetSize" value="576x576">
+                                        <span>576 × 576 Cabinet</span>
+                                    </label>
+                                    <label class="radio-pill">
+                                        <input type="radio" name="diecastCabinetSize" value="640x640">
+                                        <span>640 × 640 Cabinet</span>
+                                    </label>
+                                </div>
+
+                                <!-- Diecast Nested Modules for 576x576 -->
+                                <div id="diecast576SubContainer" class="size-sub-sub-container"
+                                    style="display: none; padding-top: 10px; border-top: 1px dashed var(--border); margin-top: 10px;">
+                                    <span class="sub-label">Select Internal Module Size:</span>
+                                    <div class="radio-pill-group" style="flex-wrap:wrap;gap:6px;">
+                                        <label class="radio-pill">
+                                            <input type="radio" name="moduleSize" value="diecast_576_288">
+                                            <span>288 × 288 <em>(Module)</em></span>
+                                        </label>
+                                        <label class="radio-pill">
+                                            <input type="radio" name="moduleSize" value="diecast_576_192">
+                                            <span>192 × 192 <em>(Module)</em></span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Diecast Nested Modules for 640x640 -->
+                                <div id="diecast640SubContainer" class="size-sub-sub-container"
+                                    style="display: none; padding-top: 10px; border-top: 1px dashed var(--border); margin-top: 10px;">
+                                    <span class="sub-label">Select Internal Module Size:</span>
+                                    <div class="radio-pill-group" style="flex-wrap:wrap;gap:6px;">
+                                        <label class="radio-pill">
+                                            <input type="radio" name="moduleSize" value="diecast_640_320">
+                                            <span>320 × 160 <em>(Module)</em></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="error-msg" data-for="moduleSize"></span>
+                        </div>
+
+                        <!-- ── Row 2: Screen Width + Height with UP/DOWN module steppers ────────── -->
+                        <div class="grid grid-2">
+
+                            <!-- SCREEN WIDTH -->
+                            <div class="field">
+                                <label for="screenWidth" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Screen Width (FT) <span class="req">*</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="screenWidth" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+                                <input type="number" id="screenWidth" name="screenWidth" required step="any" min="0.01"
+                                    placeholder="e.g. 20 or 20.5">
+                                <span class="error-msg" data-for="screenWidth"></span>
+
+                                <!-- Module / Cabinet count card -->
+                                <div class="module-rounding-card" id="widthRoundingCard" style="display:none;">
+                                    <div class="module-raw-hint" id="rawWidthHint"></div>
+                                    <!-- UP row (CEILING — recommended) -->
+                                    <div class="module-row" id="widthUpRow">
+                                        <label class="module-radio-label">
+                                            <input type="radio" name="widthRounding" value="up" id="widthRoundUp">
+                                            <span class="module-direction-tag">UP</span>
+                                        </label>
+                                        <div class="module-stepper">
+                                            <button type="button" class="module-step-btn minus" data-axis="width"
+                                                data-rounding="up" aria-label="Decrease width UP count">−</button>
+                                            <span class="module-count" id="widthUpCount">—</span>
+                                            <button type="button" class="module-step-btn plus" data-axis="width"
+                                                data-rounding="up" aria-label="Increase width UP count">+</button>
+                                        </div>
+                                    </div>
+                                    <!-- DOWN row (FLOOR — user override) -->
+                                    <div class="module-row" id="widthDownRow">
+                                        <label class="module-radio-label">
+                                            <input type="radio" name="widthRounding" value="down" id="widthRoundDown">
+                                            <span class="module-direction-tag">DOWN</span>
+                                        </label>
+                                        <div class="module-stepper">
+                                            <button type="button" class="module-step-btn minus" data-axis="width"
+                                                data-rounding="down" aria-label="Decrease width DOWN count">−</button>
+                                            <span class="module-count" id="widthDownCount">—</span>
+                                            <button type="button" class="module-step-btn plus" data-axis="width"
+                                                data-rounding="down" aria-label="Increase width DOWN count">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- SCREEN HEIGHT -->
+                             <div class="field">
+                                <label for="screenHeight" style="display:flex; justify-content:space-between; align-items:center;">
+                                    <span>Screen Height (FT) <span class="req">*</span></span>
+                                    <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                        <input type="checkbox" class="hide-pdf-checkbox" data-field="screenHeight" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                    </span>
+                                </label>
+                                <input type="number" id="screenHeight" name="screenHeight" required step="any"
+                                    min="0.01" placeholder="e.g. 10 or 10.5">
+                                <span class="error-msg" data-for="screenHeight"></span>
+
+                                <!-- Module / Cabinet count card -->
+                                <div class="module-rounding-card" id="heightRoundingCard" style="display:none;">
+                                    <div class="module-raw-hint" id="rawHeightHint"></div>
+                                    <!-- UP row -->
+                                    <div class="module-row" id="heightUpRow">
+                                        <label class="module-radio-label">
+                                            <input type="radio" name="heightRounding" value="up" id="heightRoundUp">
+                                            <span class="module-direction-tag">UP</span>
+                                        </label>
+                                        <div class="module-stepper">
+                                            <button type="button" class="module-step-btn minus" data-axis="height"
+                                                data-rounding="up" aria-label="Decrease height UP count">−</button>
+                                            <span class="module-count" id="heightUpCount">—</span>
+                                            <button type="button" class="module-step-btn plus" data-axis="height"
+                                                data-rounding="up" aria-label="Increase height UP count">+</button>
+                                        </div>
+                                    </div>
+                                    <!-- DOWN row -->
+                                    <div class="module-row" id="heightDownRow">
+                                        <label class="module-radio-label">
+                                            <input type="radio" name="heightRounding" value="down" id="heightRoundDown">
+                                            <span class="module-direction-tag">DOWN</span>
+                                        </label>
+                                        <div class="module-stepper">
+                                            <button type="button" class="module-step-btn minus" data-axis="height"
+                                                data-rounding="down" aria-label="Decrease height DOWN count">−</button>
+                                            <span class="module-count" id="heightDownCount">—</span>
+                                            <button type="button" class="module-step-btn plus" data-axis="height"
+                                                data-rounding="down" aria-label="Increase height DOWN count">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- ── Calculation Banner ──────────────────────────────────────────────── -->
+                        <div class="calc-banner" id="calcBanner">Enter width, height &amp; module size to calculate
+                            screen dimensions.</div>
+
+                        <!-- ══════════════════════════════════════════════════════════════════════
+         MAIN TWO-COLUMN LAYOUT
+         Left  — all calculated + site visit fields
+         Right — Screen Configuration box
+         ══════════════════════════════════════════════════════════════════════ -->
+                        <div class="s3-main-grid">
+
+                            <!-- ── LEFT COLUMN ─────────────────────────────────────────────────── -->
+                            <div class="s3-left-col">
+
+                                <!-- Container 1: Calculated Dimensions -->
+                                <div class="config-group-box">
+                                    <div class="config-group-title">📊 Calculated Dimensions</div>
+                                    <div class="grid grid-2">
+                                        <div class="field">
+                                            <label for="numModulesW" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>No of Module/Cabinet in Width</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="numModulesW" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="numModulesW" name="numModulesW" step="any"
+                                                placeholder="Auto">
+                                        </div>
+                                        <div class="field">
+                                            <label for="numModulesH" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>No of Module/Cabinet in Height</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="numModulesH" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="numModulesH" name="numModulesH" step="any"
+                                                placeholder="Auto">
+                                        </div>
+                                        <div class="field">
+                                            <label for="totalCabinets" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>Total no. of Module/Cabinet</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="totalCabinets" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="totalCabinets" name="totalCabinets" step="any"
+                                                placeholder="Auto">
+                                        </div>
+                                        <div class="field">
+                                            <label for="actualWidthMM" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>Actual Width (MM)</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="actualWidthMM" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="actualWidthMM" name="actualWidthMM" step="any"
+                                                placeholder="Auto">
+                                        </div>
+                                        <div class="field">
+                                            <label for="actualHeightMM" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>Actual Height (MM)</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="actualHeightMM" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="actualHeightMM" name="actualHeightMM" step="any"
+                                                placeholder="Auto">
+                                        </div>
+                                        <div class="field">
+                                            <label for="actualWidthFT" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>Actual Screen Width (FT)</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="actualWidthFT" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="actualWidthFT" name="actualWidthFT" step="any"
+                                                placeholder="Auto">
+                                        </div>
+                                        <div class="field">
+                                            <label for="actualHeightFT" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>Actual Screen Height (FT)</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="actualHeightFT" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="actualHeightFT" name="actualHeightFT" step="any"
+                                                placeholder="Auto">
+                                        </div>
+                                        <div class="field">
+                                            <label for="totalArea" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>Total Area (SQFT)</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="totalArea" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="totalArea" name="totalArea" step="any"
+                                                placeholder="Auto">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Container 2: Site Measurements -->
+                                <div class="config-group-box">
+                                    <div class="config-group-title">📐 Site Measurements</div>
+                                    <div class="grid grid-2">
+                                        <div class="field">
+                                            <label for="heightFromGround" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>Height From Ground (Ft)</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="heightFromGround" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="heightFromGround" name="heightFromGround"
+                                                step="any" min="0" placeholder="0">
+                                        </div>
+                                        <div class="field">
+                                            <label for="viewingDistance" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>Viewing Distance (Ft)</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="viewingDistance" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="viewingDistance" name="viewingDistance" step="any"
+                                                min="0" placeholder="0">
+                                        </div>
+                                        <div class="field">
+                                            <label for="powerPointDistance" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>Power Point Distance (Ft)</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="powerPointDistance" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="powerPointDistance" name="powerPointDistance"
+                                                step="any" min="0" placeholder="0">
+                                        </div>
+                                        <div class="field">
+                                            <label for="controlRoomDistance" style="display:flex; justify-content:space-between; align-items:center;">
+                                                <span>Control Room Distance (Ft)</span>
+                                                <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                    <input type="checkbox" class="hide-pdf-checkbox" data-field="controlRoomDistance" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                                </span>
+                                            </label>
+                                            <input type="number" id="controlRoomDistance" name="controlRoomDistance"
+                                                step="any" min="0" placeholder="0">
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div><!-- /s3-left-col -->
+
+                            <!-- ── RIGHT COLUMN ────────────────────────────────────────────────── -->
+                            <div class="s3-right-col">
+                                <!-- Container 4: Screen Configuration -->
+                                <div class="config-group-box">
+                                    <div class="config-group-title">⚙ Screen Configuration</div>
+
+                                    <!-- Cabinet Solution -->
+                                    <div class="config-group-row">
+                                        <div class="config-group-label" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                            <span>Cabinet Solution <span class="req">*</span></span>
+                                            <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                <input type="checkbox" class="hide-pdf-checkbox" data-field="cabinetSolution" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                            </span>
+                                        </div>
+                                        <div class="radio-pill-group" style="flex-wrap:wrap;gap:6px;">
+                                            <label class="radio-pill"><input type="radio" name="cabinetSolution"
+                                                    value="MS" required><span>MS</span></label>
+                                            <label class="radio-pill"><input type="radio" name="cabinetSolution"
+                                                    value="DIECAST"><span>Diecast</span></label>
+                                            <label class="radio-pill"><input type="radio" name="cabinetSolution"
+                                                    value="WALL MOUNT"><span>Wall Mount</span></label>
+                                        </div>
+                                        <span class="error-msg" data-for="cabinetSolution"></span>
+                                    </div>
+
+                                    <div class="config-group-divider"></div>
+
+                                    <!-- Mounting Type -->
+                                    <div class="config-group-row">
+                                        <div class="config-group-label" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                            <span>Mounting Type <span class="req">*</span></span>
+                                            <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                <input type="checkbox" class="hide-pdf-checkbox" data-field="mountingType" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                            </span>
+                                        </div>
+                                        <div class="radio-pill-group" style="flex-wrap:wrap;gap:6px;">
+                                            <label class="radio-pill"><input type="radio" name="mountingType"
+                                                    value="POLE" required><span>Pole</span></label>
+                                            <label class="radio-pill"><input type="radio" name="mountingType"
+                                                    value="WALL"><span>Wall</span></label>
+                                            <label class="radio-pill"><input type="radio" name="mountingType"
+                                                    value="STAND"><span>Stand</span></label>
+                                            <label class="radio-pill"><input type="radio" name="mountingType"
+                                                    value="PORTABLE"><span>Portable</span></label>
+                                        </div>
+                                        <span class="error-msg" data-for="mountingType"></span>
+                                    </div>
+
+                                    <div class="config-group-divider"></div>
+
+                                    <!-- AMC -->
+                                    <div class="config-group-row">
+                                        <div class="config-group-label" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                            <span>AMC <span class="req">*</span></span>
+                                            <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                <input type="checkbox" class="hide-pdf-checkbox" data-field="amc" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                            </span>
+                                        </div>
+                                        <div class="radio-pill-group" style="flex-wrap:wrap;gap:6px;">
+                                            <label class="radio-pill"><input type="radio" name="amc" value="YES"
+                                                    required><span>✓ Yes — Include AMC</span></label>
+                                            <label class="radio-pill"><input type="radio" name="amc" value="NO"><span>✗
+                                                    No AMC</span></label>
+                                        </div>
+                                        <span class="error-msg" data-for="amc"></span>
+                                    </div>
+
+                                    <div class="config-group-divider"></div>
+
+                                    <!-- Site Visit -->
+                                    <div class="config-group-row">
+                                        <div class="config-group-label" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+                                            <span>Site Visit <span class="req">*</span></span>
+                                            <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                <input type="checkbox" class="hide-pdf-checkbox" data-field="siteVisit" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                            </span>
+                                        </div>
+                                        <div class="radio-pill-group" style="flex-wrap:wrap;gap:6px;">
+                                            <label class="radio-pill"><input type="radio" name="siteVisit" value="YES"
+                                                    required><span>Yes</span></label>
+                                            <label class="radio-pill"><input type="radio" name="siteVisit"
+                                                    value="NO"><span>No</span></label>
+                                        </div>
+                                        <span class="error-msg" data-for="siteVisit"></span>
+                                    </div>
+
+                                    <!-- MOM of Site Visit -->
+                                    <div class="field hidden" id="momField" style="margin-top:12px;">
+                                        <label for="momOfSiteVisit"
+                                            style="display:flex; justify-content:space-between; align-items:center; font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;">
+                                            <span>MOM of Site Visit</span>
+                                            <span class="hide-pdf-wrapper" style="font-size: 10px; font-weight: normal; color: var(--text-dim); display: inline-flex; align-items: center; gap: 4px; text-transform: none;">
+                                                <input type="checkbox" class="hide-pdf-checkbox" data-field="momOfSiteVisit" style="margin: 0; width: 12px; height: 12px; cursor: pointer;"> Hide in PDF
+                                            </span>
+                                        </label>
+                                        <textarea id="momOfSiteVisit" name="momOfSiteVisit" rows="3"
+                                            placeholder="Minutes of meeting / URL / notes…"
+                                            style="width:100%;box-sizing:border-box;"></textarea>
+                                    </div>
+                                </div>
+                            </div><!-- /s3-right-col -->
+
+                        </div><!-- /s3-main-grid -->
+
+                    </section>
+
+                </div>
+                <!-- Section 4: Scope of Work -->
+                <div id="slot-section4">
+                    <!-- ==========================================================================
+     SECTION 4 — SCOPE OF WORK
+     Partial loaded into create.html
+     Uses RADIO BUTTONS (KAN / BUYER) instead of dropdowns
+     ========================================================================== -->
+                    <section class="card" id="section-scope">
+                        <div class="card-head">
+                            <span class="eyebrow">◉ 04 — Scope of Work</span>
+                            <h2>Who is responsible for what</h2>
+                            <p class="card-sub">
+                                Selecting <strong>KAN</strong> automatically adds a matching line item to the Quotation
+                                Breakdown below.
+                            </p>
+                        </div>
+
+                        <!-- Scope items grid — populated by script.js via SCOPE_FIELDS constant -->
+                        <div class="grid grid-3" id="scopeGrid">
+                            <!-- Each scope item will be a card with two radio pills: KAN and BUYER -->
+                            <!-- Rendered dynamically by initScopeOfWork() in script.js -->
+                        </div>
+                    </section>
+
+                </div>
+                <!-- Section 5: Quotation Breakdown -->
+                <div id="slot-section5">
+                    <!-- ==========================================================================
+     SECTION 5 — QUOTATION BREAKDOWN
+     Partial loaded into create.html
+     ========================================================================== -->
+                    <section class="card card-wide" id="section-breakdown">
+                        <div class="card-head">
+                            <span class="eyebrow">◉ 05 — Quotation Breakdown</span>
+                            <h2>Line items</h2>
+                            <p class="card-sub">Row 1 (Screen &rarr; Module) is auto-generated from Project Details. Qty
+                                = Total Area (SQFT).</p>
+                        </div>
+
+                        <!-- Line Items Table -->
+                        <div class="table-scroll">
+                            <table class="line-table" id="lineItemsTable">
+                                <thead>
+                                    <tr>
+                                        <th class="col-sno">S.No</th>
+                                        <th class="col-cat">Category</th>
+                                        <th class="col-item">Item</th>
+                                        <th class="col-brand">Brand</th>
+                                        <th class="col-spec">Specification</th>
+                                        <th class="col-desc">Description</th>
+                                        <th class="col-qty">Qty / SQFT</th>
+                                        <th class="col-unit">Unit</th>
+                                        <th class="col-price">Unit Price</th>
+                                        <th class="col-total">Total</th>
+                                        <th class="col-action"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lineItemsBody">
+                                    <!-- Populated by script.js -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <button type="button" id="addLineItemBtn" class="btn btn-ghost btn-sm" style="margin-top:12px;">
+                            + Add Line Item
+                        </button>
+
+                        <!-- Summary Box -->
+                        <div class="summary-box">
+                            <div class="summary-row">
+                                <span>Subtotal</span>
+                                <span id="summarySubtotal" class="font-mono">0.00</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>GST %</span>
+                                <input type="number" id="gstPercent" value="18" min="0" max="100" step="0.01">
+                            </div>
+                            <div class="summary-row">
+                                <span>GST Amount</span>
+                                <span id="summaryGstAmount" class="font-mono">0.00</span>
+                            </div>
+                            <div class="summary-row">
+                                <span>Discount (₹)</span>
+                                <input type="number" id="discountAmount" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="summary-row summary-total">
+                                <span>Grand Total</span>
+                                <span id="summaryGrandTotal" class="font-mono">0.00</span>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+                <!-- Section 6: Terms -->
+                <div id="slot-section6">
+                    <!-- ==========================================================================
+     SECTION 6 — TERMS & CONDITIONS
+     Partial loaded into create.html
+     ========================================================================== -->
+                    <section class="card" id="section-terms">
+                        <div class="card-head">
+                            <span class="eyebrow">◉ 06 — Terms &amp; Conditions</span>
+                            <h2>Standard clauses</h2>
+                            <p class="card-sub">
+                                <span class="tag tag-admin">ADMIN</span> clauses are locked and cannot be edited.
+                                <span class="tag tag-user">USER</span> clauses are editable.
+                            </p>
+                        </div>
+                        <div id="termsList" class="terms-list">
+                            <!-- Populated by script.js renderTerms() -->
+                        </div>
+                        <button type="button" id="addTermBtn" class="btn btn-ghost btn-sm" style="margin-top:12px;">+
+                            Add Term</button>
+                    </section>
+
+                </div>
+                <!-- Section 7: Remarks -->
+                <div id="slot-section7">
+                    <!-- ==========================================================================
+     SECTION 7 — REMARKS
+     Partial loaded into create.html
+     ========================================================================== -->
+                    <section class="card" id="section-remarks">
+                        <div class="card-head">
+                            <span class="eyebrow">◉ 07 — Remarks</span>
+                            <h2>Additional notes</h2>
+                            <p class="card-sub">Maximum 10 remarks. Click <strong>+</strong> to add more.</p>
+                        </div>
+                        <div id="remarksList" class="dynamic-list">
+                            <!-- Populated by script.js renderRemarks() -->
+                        </div>
+                        <button type="button" id="addRemarkBtn" class="btn btn-ghost btn-sm">+ Add Remark</button>
+                    </section>
+
+                </div>
+                <!-- Section 8: Attachment -->
+                <div id="slot-section8">
+                    <!-- ==========================================================================
+     SECTION 8 — ATTACHMENTS
+     Partial loaded into create.html
+     ========================================================================== -->
+                    <section class="card" id="section-attachment">
+                        <div class="card-head">
+                            <span class="eyebrow">◉ 08 — Attachment</span>
+                            <h2>Supporting Documents</h2>
+                            <p class="card-sub">Upload up to 5 supporting files (any format, maximum 4MB per file).
+                                Optional.</p>
+                        </div>
+
+                        <div class="field" id="attachmentInputWrapper">
+                            <label for="attachmentFile">Select Files <span class="hint">(optional, max 5)</span></label>
+                            <input type="file" id="attachmentFile" name="attachmentFile" accept="*/*" multiple
+                                style="width:100%; box-sizing:border-box; padding:8px; border:1px dashed var(--border-soft); border-radius:var(--radius); background:var(--bg-input);">
+                        </div>
+
+                        <div id="attachmentsContainer"
+                            style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Dynamically rendered list of files with remove buttons -->
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+
+
+            <!-- ============================================================
+             FORM ACTIONS BAR
+             ============================================================ -->
+            <section class="actions-bar">
+                <button type="button" class="btn btn-outline" id="btnBackDashboard">← Dashboard</button>
+                <div style="display:flex; gap:15px; align-items:center;">
+                    <label
+                        style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; cursor: pointer;">
+                        <input type="checkbox" id="hideGstInPdf" name="hideGstInPdf" style="width: 16px; height: 16px;">
+                        Hide GST
+                    </label>
+                    <label
+                        style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; cursor: pointer;">
+                        <input type="checkbox" id="hideDiscountInPdf" name="hideDiscountInPdf"
+                            style="width: 16px; height: 16px;">
+                        Hide Discount
+                    </label>
+                </div>
+                <div class="actions-right">
+                    <button type="button" class="btn btn-outline" id="btnClearForm">Clear Form</button>
+                    <button type="button" class="btn btn-outline hidden" id="btnSaveAs">Save As</button>
+                    <button type="button" class="btn btn-outline" id="btnSaveDraft">Save Draft</button>
+                    <button type="button" class="btn btn-outline" id="btnPreview">Preview</button>
+                    <button type="button" class="btn btn-outline" id="btnPrint">Print</button>
+                    <button type="button" class="btn btn-outline" id="btnDownloadPdf">Download PDF</button>
+                    <button type="submit" class="btn btn-primary" id="btnGenerate">✔ Generate Quote</button>
+                </div>
+            </section>
+
+        </form>
+    </main>
+
+    <footer class="site-footer">
+        <p>KAN Universal Pvt Ltd · LED video walls manufactured in New Delhi since 2010 · <a
+                href="https://www.kanuniversal.com" target="_blank" rel="noopener">www.kanuniversal.com</a></p>
+    </footer>
+
+    <!-- Preview Modal -->
+    <div id="modalOverlay" class="modal-overlay hidden">
+        <div class="modal-box" id="modalBox"></div>
+    </div>
+
+    <!-- Print Area -->
+    <!-- Hidden container for background PDF generation -->
+    <div style="position: absolute; left: -9999px; top: -9999px; width: 800px; z-index: -9999;">
+        <div id="pdfDocHidden" class="pdf-doc" style="width: 800px; margin: 0; box-shadow: none; border-radius: 0;">
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="../assets/js/specs.js"></script>
+    <script src="../assets/js/credentials.js"></script>
+    <script src="../assets/js/calculation.js"></script>
+    <script src="../assets/js/script.js"></script>
+
+</body>
+
+</html>
