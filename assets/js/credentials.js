@@ -21,7 +21,7 @@ const KAN_LOGO_BASE64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBD
 const EMPLOYEES = [
     {
         name: "MOHIT", email: "sales7@kanuniversal.com", contact: "9310403363",
-        role: "Business Development Manager", id: "MOHIT", password: "mohit123", access: "User"
+        role: "Business Development Executive", id: "MOHIT", password: "mohit123", access: "User"
     },
     {
         name: "KOMAL", email: "sales8@kanuniversal.com", contact: "9311249186",
@@ -104,11 +104,15 @@ function _slug(s) {
 function buildCatalog(rows) {
     const catalog = {};
     rows.forEach(([category, item, brand]) => {
-        if (!catalog[category]) catalog[category] = {};
-        if (!catalog[category][item]) catalog[category][item] = [];
+        let normCategory = String(category || "").trim();
+        if (/screen\s*[→\->]\s*module/i.test(normCategory)) {
+            normCategory = "Screen → Module";
+        }
+        if (!catalog[normCategory]) catalog[normCategory] = {};
+        if (!catalog[normCategory][item]) catalog[normCategory][item] = [];
         /* Point spec sheet links to the new local specs.html page */
-        const specUrl = `../pages/specs.html?category=${encodeURIComponent(category)}&item=${encodeURIComponent(item)}`;
-        catalog[category][item].push({
+        const specUrl = `../pages/specs.html?category=${encodeURIComponent(normCategory)}&item=${encodeURIComponent(item)}`;
+        catalog[normCategory][item].push({
             brand,
             spec: item,
             link: specUrl
@@ -129,17 +133,21 @@ try {
 
 async function loadDynamicProducts() {
     try {
-        const res = await fetch(`${GOOGLE_SHEET_WEBAPP_URL}?action=getProducts`);
+        const res = await fetch(`${GOOGLE_SHEET_WEBAPP_URL}?action=getProducts&bypassCache=true&t=${Date.now()}`);
         const json = await res.json();
         if (json.status === "success" && json.data) {
             const rows = json.data;
             const newCatalog = {};
             rows.forEach(row => {
-                const category = String(row[0] || "").trim();
+                let category = String(row[0] || "").trim();
                 const item = String(row[1] || "").trim();
                 const brand = String(row[2] || "").trim();
                 const spec = String(row[3] || "").trim();
                 if (!category) return;
+
+                if (/screen\s*[→\->]\s*module/i.test(category)) {
+                    category = "Screen → Module";
+                }
 
                 if (!newCatalog[category]) newCatalog[category] = {};
                 if (!newCatalog[category][item]) newCatalog[category][item] = [];
