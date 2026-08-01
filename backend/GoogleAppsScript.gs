@@ -390,7 +390,11 @@ function doGet(e) {
 
     if (action === "getProducts") {
       var cache = CacheService.getScriptCache();
-      var cachedData = cache.get("product_catalog");
+      var bypassCache = e.parameter.bypassCache === "true";
+      var cachedData = null;
+      if (!bypassCache) {
+        cachedData = cache.get("product_catalog");
+      }
       if (cachedData) {
         return ContentService.createTextOutput(JSON.stringify({ status: "success", data: JSON.parse(cachedData) }))
           .setMimeType(ContentService.MimeType.JSON);
@@ -410,7 +414,7 @@ function doGet(e) {
       var data = sheet.getRange(2, 2, lastRow - 1, 4).getValues();
       
       try {
-        cache.put("product_catalog", JSON.stringify(data), 21600); // 6 hours
+        cache.put("product_catalog", JSON.stringify(data), 300); // 5 minutes
       } catch(cacheErr) {}
 
       return ContentService.createTextOutput(JSON.stringify({ status: "success", data: data }))
