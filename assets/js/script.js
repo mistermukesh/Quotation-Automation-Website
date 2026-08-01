@@ -2553,6 +2553,12 @@
         document.getElementById("btnDownloadPdf")?.addEventListener("click", handleDownloadPdf);
         document.getElementById("btnClearForm")?.addEventListener("click", handleClearForm);
         document.getElementById("btnBackDashboard")?.addEventListener("click", handleBackToDashboard);
+        document.getElementById("btnSyncProducts")?.addEventListener("click", async () => {
+            showLoading("Syncing product catalog...");
+            await loadDynamicProducts();
+            hideLoading();
+            toast("Product catalog synchronized successfully!", "success");
+        });
 
         /* Close modal when clicking "#modalCloseBtn" via delegation */
         document.getElementById("modalBox")?.addEventListener("click", e => {
