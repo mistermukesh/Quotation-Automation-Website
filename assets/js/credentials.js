@@ -32,7 +32,7 @@ const EMPLOYEES = [
         role: "Business Development Executive", id: "ARCHANA", password: "archana123", access: "User"
     },
     {
-        name: "KANISHKA", email: "sales5@kanuniversal.com", contact: "9310403364",
+        name: "KANISHKA", email: "sales5@kanuniversal.com", contact: "8796966271",
         role: "Business Development Executive", id: "KANISHKA", password: "kanishka123", access: "User"
     },
     {
