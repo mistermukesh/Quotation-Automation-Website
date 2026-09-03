@@ -21,7 +21,7 @@ const KAN_LOGO_BASE64 = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBD
 const EMPLOYEES = [
     {
         name: "MOHIT", email: "sales7@kanuniversal.com", contact: "9310403363",
-        role: "Business Development Executive", id: "MOHIT", password: "mohit123", access: "User"
+        role: "Business Development Manager", id: "MOHIT", password: "mohit123", access: "User"
     },
     {
         name: "KOMAL", email: "sales8@kanuniversal.com", contact: "9311249186",
